@@ -756,7 +756,7 @@
           </div>
           ${e.note?`<div class="entry-note">"${esc(e.note)}"</div>`:''}
         </div>
-        ${e.image?`<div class="entry-img-wrap"><img src="/uploads/${e.image}" loading="lazy"></div>`:''}
+        ${e.image?`<div class="entry-img-wrap"><img src="${e.image}" loading="lazy"></div>`:''}
       </div>`).join('');
   }
 
