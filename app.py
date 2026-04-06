@@ -78,6 +78,8 @@ def add_entry():
 
 @app.route('/api/target', methods=['POST'])
 def set_target():
+    if request.json.get('key') != 'fishtins':
+        return jsonify({"error": "Unauthorized"}), 403
     data = load_data()
     try:
         target = int(request.json.get('target', 0))
