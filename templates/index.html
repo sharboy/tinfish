@@ -509,6 +509,92 @@
   .edit-btn:hover { color: var(--ocean); }
 
 
+  /* STAT CARDS */
+  .stat-card {
+    background: white;
+    border: 1.5px solid var(--ink);
+    padding: 1rem 1.1rem;
+    margin-bottom: 1rem;
+  }
+  .stat-card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.85rem;
+  }
+  .goal-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--ocean);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .goal-sep { color: var(--muted); margin: 0 0.3rem; font-size: 1.5rem; }
+  .goal-unit { font-size: 1rem; color: var(--muted); margin-left: 0.3rem; }
+
+  /* BAR CHART */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.55rem;
+  }
+  .bar-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    width: 90px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track {
+    flex: 1;
+    background: var(--paper);
+    height: 20px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ocean), #2a5a70);
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    min-width: 2px;
+  }
+  .bar-fill.gold { background: linear-gradient(90deg, var(--gold), #e8b84b); }
+  .bar-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* TIME CHART */
+  .time-chart {
+    position: relative;
+    height: 120px;
+    margin-top: 0.5rem;
+  }
+  .time-chart svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* FUN FACTS */
+  .fun-fact {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+  }
+  .fun-fact:last-child { border-bottom: none; }
+  .fun-fact-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+  .fun-fact-text { font-size: 0.85rem; color: var(--ink); line-height: 1.4; }
+  .fun-fact-text strong { color: var(--ocean); }
+
   /* PASSWORD GATE */
   #password-gate {
     position: fixed;
@@ -767,6 +853,54 @@
     </div>
   </div>
 </div>
+
+    <!-- STATS PAGE -->
+    <div id="page-stats" class="page">
+      <div class="chronicle-inner">
+        <div class="section-title" style="margin-bottom:1.25rem">📊 Stats</div>
+
+        <!-- Progress to goal -->
+        <div class="stat-card">
+          <div class="stat-card-title">Progress to Goal</div>
+          <div class="goal-display">
+            <span id="s-total">0</span>
+            <span class="goal-sep">/</span>
+            <span id="s-target">0</span>
+            <span class="goal-unit">tins</span>
+          </div>
+          <div class="progress-bar-wrap" style="margin-top:0.75rem">
+            <div class="progress-bar-fill" id="s-progress-fill" style="width:0%"></div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);margin-top:0.4rem;text-align:right" id="s-pct-label">0% complete</div>
+        </div>
+
+        <!-- Tins by person -->
+        <div class="stat-card">
+          <div class="stat-card-title">Tins by Person</div>
+          <div id="chart-person"></div>
+        </div>
+
+        <!-- Tins by type -->
+        <div class="stat-card">
+          <div class="stat-card-title">Tins by Type</div>
+          <div id="chart-type"></div>
+        </div>
+
+        <!-- Tins over time -->
+        <div class="stat-card">
+          <div class="stat-card-title">Tins Over Time</div>
+          <div id="chart-time"></div>
+        </div>
+
+        <!-- Fun facts -->
+        <div class="stat-card">
+          <div class="stat-card-title">Fun Facts</div>
+          <div id="fun-facts"></div>
+        </div>
+
+      </div>
+    </div>
+
 <!-- Mobile bottom nav -->
 <nav class="bottom-nav">
   <button class="nav-btn active" id="nav-chronicle" onclick="showPage('chronicle')">
@@ -776,6 +910,10 @@
   <button class="nav-btn" id="nav-log" onclick="showPage('log')">
     <span class="nav-icon">🥫</span>
     <span class="nav-label">Log a Tin</span>
+  </button>
+  <button class="nav-btn" id="nav-stats" onclick="showPage('stats')">
+    <span class="nav-icon">📊</span>
+    <span class="nav-label">Stats</span>
   </button>
 </nav>
 
@@ -832,6 +970,7 @@
 
     renderLeaderboard();
     renderEntries();
+    renderStats();
   }
 
   function renderLeaderboard() {
@@ -869,7 +1008,7 @@
             ${e.tin_type?`<span style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);background:var(--paper);padding:0.1rem 0.4rem">${esc(e.tin_type)}</span>`:''}
             <span class="entry-date">${formatDate(e.date)}</span>
             ${isAdmin ? `<button class="edit-btn" onclick="openEditModal('${e.id}')">✎</button>` : ''}
-            <button class="delete-btn" onclick="deleteEntry('${e.id}')">✕</button>
+            ${isAdmin ? `<button class="delete-btn" onclick="deleteEntry('${e.id}')">✕</button>` : ''}
           </div>
           ${e.note?`<div class="entry-note">"${esc(e.note)}"</div>`:''}
         </div>
@@ -1064,6 +1203,106 @@
   document.getElementById('edit-modal').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
   });
+
+
+  function renderStats() {
+    if (!appData || !appData.entries) return;
+    const entries = appData.entries;
+    const total = entries.reduce((s,e) => s + e.tins, 0);
+    const target = appData.target;
+    const pct = Math.min(100, Math.round((total / target) * 100));
+
+    // Progress
+    document.getElementById('s-total').textContent = total;
+    document.getElementById('s-target').textContent = target;
+    document.getElementById('s-progress-fill').style.width = pct + '%';
+    document.getElementById('s-pct-label').textContent = pct + '% complete';
+
+    // By person
+    const byPerson = {};
+    entries.forEach(e => { byPerson[e.name] = (byPerson[e.name] || 0) + e.tins; });
+    const sortedPeople = Object.entries(byPerson).sort((a,b) => b[1]-a[1]);
+    const maxPerson = sortedPeople[0]?.[1] || 1;
+    document.getElementById('chart-person').innerHTML = sortedPeople.map(([name, tins]) => `
+      <div class="bar-row">
+        <div class="bar-label">${esc(name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((tins/maxPerson)*100)}%"></div></div>
+        <div class="bar-val">${tins}</div>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:0.8rem">No data yet</div>';
+
+    // By type
+    const byType = {};
+    entries.forEach(e => { if (e.tin_type) byType[e.tin_type] = (byType[e.tin_type] || 0) + e.tins; });
+    const sortedTypes = Object.entries(byType).sort((a,b) => b[1]-a[1]);
+    const maxType = sortedTypes[0]?.[1] || 1;
+    document.getElementById('chart-type').innerHTML = sortedTypes.map(([type, tins]) => `
+      <div class="bar-row">
+        <div class="bar-label">${esc(type)}</div>
+        <div class="bar-track"><div class="bar-fill gold" style="width:${Math.round((tins/maxType)*100)}%"></div></div>
+        <div class="bar-val">${tins}</div>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:0.8rem">No data yet</div>';
+
+    // Over time - cumulative by day
+    const byDay = {};
+    entries.forEach(e => { if (e.date) byDay[e.date] = (byDay[e.date] || 0) + e.tins; });
+    const days = Object.keys(byDay).sort();
+    if (days.length > 1) {
+      let cumulative = 0;
+      const points = days.map(d => { cumulative += byDay[d]; return cumulative; });
+      const maxVal = Math.max(...points, target);
+      const w = 300; const h = 100; const pad = 5;
+      const xs = days.map((_, i) => pad + (i / (days.length - 1)) * (w - pad*2));
+      const ys = points.map(v => h - pad - ((v / maxVal) * (h - pad*2)));
+      const targetY = h - pad - ((target / maxVal) * (h - pad*2));
+      const polyline = xs.map((x,i) => `${x},${ys[i]}`).join(' ');
+      const area = `${xs[0]},${h} ` + xs.map((x,i) => `${x},${ys[i]}`).join(' ') + ` ${xs[xs.length-1]},${h}`;
+      document.getElementById('chart-time').innerHTML = `
+        <div class="time-chart">
+          <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1a3a4a" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#1a3a4a" stop-opacity="0.02"/>
+              </linearGradient>
+            </defs>
+            <line x1="${pad}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="#c9962b" stroke-width="1" stroke-dasharray="4,3" opacity="0.7"/>
+            <polygon points="${area}" fill="url(#areaGrad)"/>
+            <polyline points="${polyline}" fill="none" stroke="#1a3a4a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            ${xs.map((x,i) => `<circle cx="${x}" cy="${ys[i]}" r="3" fill="#1a3a4a"/>`).join('')}
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:0.25rem">
+            <span>${days[0]}</span><span>${days[days.length-1]}</span>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--gold);margin-top:0.2rem">— target</div>
+        </div>`;
+    } else {
+      document.getElementById('chart-time').innerHTML = '<div style="color:var(--muted);font-size:0.8rem">Need more entries to show trend</div>';
+    }
+
+    // Fun facts
+    const facts = [];
+    if (entries.length > 0) {
+      // Most active person
+      if (sortedPeople.length) facts.push({ icon: '🏆', text: `<strong>${esc(sortedPeople[0][0])}</strong> is leading with <strong>${sortedPeople[0][1]}</strong> tin${sortedPeople[0][1]!==1?'s':''}` });
+      // Favourite fish
+      if (sortedTypes.length) facts.push({ icon: '🐟', text: `The group's favourite is <strong>${esc(sortedTypes[0][0])}</strong>` });
+      // Daily average
+      if (days.length > 0) {
+        const avg = (total / days.length).toFixed(1);
+        facts.push({ icon: '📅', text: `Averaging <strong>${avg} tins/day</strong> across ${days.length} day${days.length!==1?'s':''}` });
+      }
+      // Days to goal
+      if (total < target && days.length > 1) {
+        const dailyAvg = total / days.length;
+        const daysLeft = Math.ceil((target - total) / dailyAvg);
+        facts.push({ icon: '🎯', text: `At this pace, you'll hit your goal in <strong>~${daysLeft} day${daysLeft!==1?'s':''}</strong>` });
+      }
+      if (total >= target) facts.push({ icon: '🎉', text: `<strong>Goal reached!</strong> The group crushed it.` });
+    }
+    document.getElementById('fun-facts').innerHTML = facts.length
+      ? facts.map(f => `<div class="fun-fact"><span class="fun-fact-icon">${f.icon}</span><div class="fun-fact-text">${f.text}</div></div>`).join('')
+      : '<div style="color:var(--muted);font-size:0.8rem">Log some tins to see insights!</div>';
+  }
 
   loadData();
   setInterval(loadData, 30000);
