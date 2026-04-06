@@ -697,7 +697,7 @@
 </div>
 
 <header>
-  <h1>🐟 Tin Pact</h1>
+  <h1><span id="fish-btn" onclick="toggleMusic()" style="cursor:pointer;user-select:none;-webkit-user-select:none">🐟</span> Tin Pact</h1>
   <p>A Collective Tinned Fish Tracker</p>
 </header>
 
@@ -1501,5 +1501,33 @@
   loadData();
   setInterval(loadData, 30000);
 </script>
+
+<!-- Easter egg audio -->
+<audio id="bg-music" loop>
+  <source src="https://res.cloudinary.com/dsoacvo9g/video/upload/v1775519117/TENTEN_aemhpd.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+  let musicPlaying = false;
+  const music = document.getElementById('bg-music');
+  const fishBtn = document.getElementById('fish-btn');
+
+  function toggleMusic() {
+    if (musicPlaying) {
+      music.pause();
+      music.currentTime = 0;
+      fishBtn.style.filter = '';
+      fishBtn.style.animation = '';
+      musicPlaying = false;
+    } else {
+      music.play().then(() => {
+        fishBtn.style.filter = 'drop-shadow(0 0 6px #c9962b)';
+        fishBtn.style.transition = 'filter 0.3s';
+        musicPlaying = true;
+      }).catch(() => {});
+    }
+  }
+</script>
+
 </body>
 </html>
