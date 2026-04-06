@@ -1357,17 +1357,18 @@
       // Favourite fish
       if (sortedTypes.length) facts.push({ icon: '🐟', text: `The group's favourite is <strong>${esc(sortedTypes[0][0])}</strong>` });
       // Daily average
-      if (days.length > 0) {
-        const avg = (total / days.length).toFixed(1);
-        facts.push({ icon: '📅', text: `Averaging <strong>${avg} tins/day</strong> across ${days.length} day${days.length!==1?'s':''}` });
+      const loggedDays = Object.keys(byDay);
+      if (loggedDays.length > 0) {
+        const avg = (total / loggedDays.length).toFixed(1);
+        facts.push({ icon: '📅', text: `Averaging <strong>${avg} tins/day</strong> across ${loggedDays.length} day${loggedDays.length!==1?'s':''}` });
       }
       // Days to goal
-      if (total < target && days.length > 1) {
-        const dailyAvg = total / days.length;
-        const daysLeft = Math.ceil((target - total) / dailyAvg);
-        facts.push({ icon: '🎯', text: `At this pace, you'll hit your goal in <strong>~${daysLeft} day${daysLeft!==1?'s':''}</strong>` });
+      if (total < GOAL && loggedDays.length > 1) {
+        const dailyAvg = total / loggedDays.length;
+        const daysLeft = Math.ceil((GOAL - total) / dailyAvg);
+        facts.push({ icon: '🎯', text: `At this pace, you'll hit 200 tins in <strong>~${daysLeft} day${daysLeft!==1?'s':''}</strong>` });
       }
-      if (total >= target) facts.push({ icon: '🎉', text: `<strong>Goal reached!</strong> The group crushed it.` });
+      if (total >= GOAL) facts.push({ icon: '🎉', text: `<strong>Goal reached!</strong> The group crushed it.` });
     }
     document.getElementById('fun-facts').innerHTML = facts.length
       ? facts.map(f => `<div class="fun-fact"><span class="fun-fact-icon">${f.icon}</span><div class="fun-fact-text">${f.text}</div></div>`).join('')
