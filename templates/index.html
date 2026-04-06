@@ -443,6 +443,71 @@
   }
   .desktop-progress-bar { display: none; }
 
+  /* EDIT MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,58,74,0.85);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    display: none;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--cream);
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    background: var(--paper);
+    border-bottom: 2px solid var(--ink);
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+  }
+  .modal-close {
+    background: none; border: none; font-size: 1.2rem;
+    cursor: pointer; color: var(--muted); padding: 0 0.25rem; line-height: 1;
+  }
+  .modal-body { padding: 1.25rem; }
+  .modal-footer { padding: 0 1.25rem 1.25rem; display: flex; gap: 0.75rem; }
+  .modal-save {
+    flex: 1;
+    background: var(--ocean);
+    color: var(--cream);
+    border: 2px solid var(--ink);
+    padding: 0.75rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-style: italic;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .modal-save:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+  .modal-cancel {
+    background: white; color: var(--ink); border: 2px solid var(--ink);
+    padding: 0.75rem 1rem; font-family: 'DM Mono', monospace;
+    font-size: 0.75rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .edit-btn {
+    background: none; border: none; cursor: pointer;
+    color: #ccc; font-size: 0.85rem; padding: 0 0.3rem;
+    transition: color 0.15s; align-self: center;
+  }
+  .edit-btn:hover { color: var(--ocean); }
+
   /* PASSWORD GATE */
   #password-gate {
     position: fixed;
@@ -651,6 +716,56 @@
   </div>
 </div>
 
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Entry ✏️</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="edit-name">
+      </div>
+      <div class="field">
+        <label>Tins</label>
+        <input type="number" id="edit-tins" min="1">
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="field">
+        <label>Type of Tin</label>
+        <select id="edit-type" onchange="handleEditTypeChange(this)">
+          <option value="">— Select —</option>
+          <option>Sardines</option>
+          <option>Anchovies</option>
+          <option>Tuna</option>
+          <option>Mackerel</option>
+          <option>Salmon</option>
+          <option>Herring</option>
+          <option>Mussels</option>
+          <option>Oysters</option>
+          <option>Squid</option>
+          <option value="__other__">Other…</option>
+        </select>
+        <input type="text" id="edit-type-custom" placeholder="Type of tin" style="display:none;margin-top:0.5rem">
+      </div>
+      <div class="field">
+        <label>Note</label>
+        <textarea id="edit-note"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="modal-save" onclick="saveEdit()">Save Changes →</button>
+    </div>
+  </div>
+</div>
 <!-- Mobile bottom nav -->
 <nav class="bottom-nav">
   <button class="nav-btn active" id="nav-chronicle" onclick="showPage('chronicle')">
@@ -752,6 +867,7 @@
             <span class="entry-tins">🥫 ${e.tins} tin${e.tins!==1?'s':''}</span>
             ${e.tin_type?`<span style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);background:var(--paper);padding:0.1rem 0.4rem">${esc(e.tin_type)}</span>`:''}
             <span class="entry-date">${formatDate(e.date)}</span>
+            ${isAdmin ? `<button class="edit-btn" onclick="openEditModal('${e.id}')">✎</button>` : ''}
             <button class="delete-btn" onclick="deleteEntry('${e.id}')">✕</button>
           </div>
           ${e.note?`<div class="entry-note">"${esc(e.note)}"</div>`:''}
@@ -881,6 +997,71 @@
   } else {
     setTimeout(() => document.getElementById('gate-input').focus(), 100);
   }
+
+
+  function openEditModal(id) {
+    const e = appData.entries.find(x => x.id === id);
+    if (!e) return;
+    document.getElementById('edit-id').value = e.id;
+    document.getElementById('edit-name').value = e.name || '';
+    document.getElementById('edit-tins').value = e.tins || 1;
+    document.getElementById('edit-date').value = e.date || '';
+    document.getElementById('edit-note').value = e.note || '';
+    // Set type dropdown
+    const typeSelect = document.getElementById('edit-type');
+    const knownTypes = ['Sardines','Anchovies','Tuna','Mackerel','Salmon','Herring','Mussels','Oysters','Squid'];
+    if (!e.tin_type || e.tin_type === '') {
+      typeSelect.value = '';
+    } else if (knownTypes.includes(e.tin_type)) {
+      typeSelect.value = e.tin_type;
+      document.getElementById('edit-type-custom').style.display = 'none';
+    } else {
+      typeSelect.value = '__other__';
+      document.getElementById('edit-type-custom').style.display = 'block';
+      document.getElementById('edit-type-custom').value = e.tin_type;
+    }
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+  }
+
+  function handleEditTypeChange(sel) {
+    const custom = document.getElementById('edit-type-custom');
+    custom.style.display = sel.value === '__other__' ? 'block' : 'none';
+    if (sel.value === '__other__') custom.focus();
+    else custom.value = '';
+  }
+
+  async function saveEdit() {
+    const id = document.getElementById('edit-id').value;
+    const name = document.getElementById('edit-name').value.trim();
+    const tins = parseInt(document.getElementById('edit-tins').value);
+    const date = document.getElementById('edit-date').value;
+    const note = document.getElementById('edit-note').value.trim();
+    const typeSelect = document.getElementById('edit-type');
+    const typeCustom = document.getElementById('edit-type-custom');
+    const tinType = typeSelect.value === '__other__' ? typeCustom.value.trim() : typeSelect.value;
+
+    if (!name || !tins || tins < 1) return;
+
+    const res = await fetch(`/api/entry/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, tins, date, note, tin_type: tinType, key: 'fishtins' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeEditModal();
+      await loadData();
+    }
+  }
+
+  // Close modal on overlay click
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
 
   loadData();
   setInterval(loadData, 30000);

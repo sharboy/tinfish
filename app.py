@@ -150,5 +150,23 @@ def delete_entry(entry_id):
     supabase_request('DELETE', f"entries?id=eq.{entry_id}")
     return jsonify({"success": True})
 
+
+@app.route('/api/entry/<entry_id>', methods=['PATCH'])
+def edit_entry(entry_id):
+    if request.json.get('key') != 'fishtins':
+        return jsonify({"error": "Unauthorized"}), 403
+    updates = {
+        "name": request.json.get('name'),
+        "tins": request.json.get('tins'),
+        "date": request.json.get('date'),
+        "note": request.json.get('note'),
+        "tin_type": request.json.get('tin_type'),
+    }
+    updates = {k: v for k, v in updates.items() if v is not None}
+    result = supabase_request('PATCH', f"entries?id=eq.{entry_id}", updates)
+    if result is None:
+        return jsonify({"error": "Failed to update entry"}), 500
+    return jsonify({"success": True})
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
