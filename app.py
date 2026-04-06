@@ -43,6 +43,7 @@ def add_entry():
     tins = request.form.get('tins', '0')
     date = request.form.get('date', datetime.now().strftime('%Y-%m-%d'))
     note = request.form.get('note', '').strip()
+    tin_type = request.form.get('tin_type', '').strip()
 
     if not name:
         return jsonify({"error": "Name is required"}), 400
@@ -67,6 +68,7 @@ def add_entry():
         "tins": tins,
         "date": date,
         "note": note,
+        "tin_type": tin_type,
         "image": image_filename,
         "timestamp": datetime.now().isoformat()
     }

@@ -72,7 +72,7 @@
   /* PROGRESS */
   .progress-section {
     background: var(--ocean);
-    padding: 1.5rem 2rem 2rem;
+    padding: 1.25rem 1.5rem 1.5rem;
     border-bottom: 4px solid var(--gold);
   }
   .progress-header {
@@ -169,7 +169,24 @@
     align-items: start;
   }
   @media (max-width: 768px) {
-    main { grid-template-columns: 1fr; }
+    main { 
+      grid-template-columns: 1fr;
+      padding: 1rem;
+      gap: 1.25rem;
+    }
+    .form-card {
+      position: static; /* don't sticky on mobile */
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .stats-row {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    .stat-num { font-size: 1.35rem; }
+    .stat-label { font-size: 0.6rem; }
+    .stat-box { padding: 0.6rem 0.5rem; }
+    .entry-img-wrap { width: 75px; }
+    .feed-section h2 { font-size: 1.25rem; }
   }
 
   /* FORM */
@@ -204,7 +221,7 @@
     border: 1.5px solid #ccc;
     padding: 0.6rem 0.75rem;
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.9rem;
+    font-size: 1rem; /* prevents iOS zoom on focus */
     background: var(--cream);
     transition: border-color 0.15s;
     border-radius: 0;
@@ -214,7 +231,25 @@
     border-color: var(--ocean);
     background: white;
   }
+  .field select {
+    width: 100%;
+    border: 1.5px solid #ccc;
+    padding: 0.6rem 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    background: var(--cream);
+    transition: border-color 0.15s;
+    border-radius: 0;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7060' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    cursor: pointer;
+  }
+  .field select:focus { border-color: var(--ocean); background-color: white; }
   .field textarea { resize: vertical; min-height: 70px; }
+  .field select { width: 100%; border: 1.5px solid #ccc; padding: 0.6rem 0.75rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; background: var(--cream); border-radius: 0; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7060' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; }
 
   .upload-zone {
     border: 2px dashed #ccc;
@@ -259,14 +294,15 @@
     background: var(--rust);
     color: white;
     border: 2px solid var(--ink);
-    padding: 0.85rem;
+    padding: 1rem;
     font-family: 'Playfair Display', serif;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-style: italic;
     cursor: pointer;
     box-shadow: 3px 3px 0 var(--ink);
     transition: all 0.15s;
     margin-top: 0.5rem;
+    -webkit-tap-highlight-color: transparent;
   }
   .submit-btn:hover {
     transform: translate(-1px, -1px);
@@ -409,6 +445,15 @@
     color: var(--rust);
     font-weight: 700;
   }
+  .entry-tintype {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    background: var(--ocean);
+    color: var(--cream);
+    padding: 0.15rem 0.5rem;
+    text-transform: uppercase;
+  }
   .entry-date {
     font-family: 'DM Mono', monospace;
     font-size: 0.68rem;
@@ -502,6 +547,19 @@
       <div class="field">
         <label>Tins Eaten</label>
         <input type="number" id="f-tins" min="1" value="1" placeholder="1">
+      </div>
+      <div class="field">
+        <label>Type of Tin</label>
+        <select id="f-type" onchange="handleTypeChange(this)">
+          <option value="">— Select a fish —</option>
+          <option value="Anchovies">Anchovies</option>
+          <option value="Herring">Herring</option>
+          <option value="Kipper">Kipper</option>
+          <option value="Salmon">Salmon</option>
+          <option value="Sardines">Sardines</option>
+          <option value="__other__">+ Add your own…</option>
+        </select>
+        <input type="text" id="f-type-custom" placeholder="e.g. Mackerel" style="display:none; margin-top:0.5rem;" oninput="syncCustomType(this)">
       </div>
       <div class="field">
         <label>Date</label>
@@ -623,6 +681,7 @@
           <div class="entry-meta">
             <span class="entry-name">${esc(e.name)}</span>
             <span class="entry-tins">🥫 ${e.tins} tin${e.tins !== 1 ? 's' : ''}</span>
+            ${e.tin_type ? `<span class="entry-tintype">${esc(e.tin_type)}</span>` : ''}
             <span class="entry-date">${formatDate(e.date)}</span>
             <button class="delete-btn" onclick="deleteEntry('${e.id}')" title="Delete">✕</button>
           </div>
@@ -633,12 +692,48 @@
     `).join('');
   }
 
+  function handleTypeChange(sel) {
+    const custom = document.getElementById('f-type-custom');
+    if (sel.value === '__other__') {
+      custom.style.display = 'block';
+      custom.focus();
+    } else {
+      custom.style.display = 'none';
+      custom.value = '';
+    }
+  }
+
+  function syncCustomType(input) {
+    // nothing needed, we read it on submit
+  }
+
+  function addCustomTypeToDropdown(label) {
+    const sel = document.getElementById('f-type');
+    // Check if already exists
+    for (let opt of sel.options) {
+      if (opt.value.toLowerCase() === label.toLowerCase()) return;
+    }
+    // Insert alphabetically before the "Add your own" option
+    const newOpt = new Option(label, label);
+    const otherIndex = [...sel.options].findIndex(o => o.value === '__other__');
+    // Find alphabetical insertion point
+    let insertAt = otherIndex;
+    for (let i = 1; i < otherIndex; i++) {
+      if (sel.options[i].value.localeCompare(label) > 0) { insertAt = i; break; }
+    }
+    sel.insertBefore(newOpt, sel.options[insertAt]);
+    sel.value = label;
+  }
+
   async function submitEntry() {
     const name = document.getElementById('f-name').value.trim();
     const tins = document.getElementById('f-tins').value;
     const date = document.getElementById('f-date').value;
     const note = document.getElementById('f-note').value.trim();
     const image = document.getElementById('f-image').files[0];
+    const typeSelect = document.getElementById('f-type');
+    const typeCustom = document.getElementById('f-type-custom');
+    let tinType = typeSelect.value === '__other__' ? typeCustom.value.trim() : typeSelect.value;
 
     if (!name) return showMsg('Please enter your name.', 'error');
     if (!tins || parseInt(tins) < 1) return showMsg('Enter at least 1 tin.', 'error');
@@ -648,6 +743,7 @@
     fd.append('tins', tins);
     fd.append('date', date);
     fd.append('note', note);
+    fd.append('tin_type', tinType);
     if (image) fd.append('image', image);
 
     const btn = document.getElementById('submit-btn');
@@ -658,9 +754,15 @@
       const res = await fetch('/api/entry', { method: 'POST', body: fd });
       const data = await res.json();
       if (data.success) {
+        if (typeSelect.value === '__other__' && tinType) {
+          addCustomTypeToDropdown(tinType);
+        }
         showMsg('Tin logged! 🐟', 'success');
         document.getElementById('f-tins').value = '1';
         document.getElementById('f-note').value = '';
+        document.getElementById('f-type').value = '';
+        document.getElementById('f-type-custom').style.display = 'none';
+        document.getElementById('f-type-custom').value = '';
         document.getElementById('f-image').value = '';
         document.getElementById('preview-img').style.display = 'none';
         await loadData();
