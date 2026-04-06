@@ -442,9 +442,85 @@
     header p { font-size: 0.75rem; }
   }
   .desktop-progress-bar { display: none; }
+
+  /* PASSWORD GATE */
+  #password-gate {
+    position: fixed;
+    inset: 0;
+    background: var(--ocean);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 2rem;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.015) 20px, rgba(255,255,255,0.015) 40px);
+  }
+  #password-gate h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: var(--cream);
+    margin-bottom: 0.5rem;
+  }
+  #password-gate p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--silver);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+  #password-gate input {
+    width: 100%;
+    max-width: 280px;
+    padding: 0.85rem 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: var(--cream);
+    text-align: center;
+    letter-spacing: 0.15em;
+    outline: none;
+    border-radius: 0;
+    margin-bottom: 0.75rem;
+    -webkit-appearance: none;
+  }
+  #password-gate input:focus { border-color: var(--gold); }
+  #password-gate input::placeholder { color: rgba(255,255,255,0.3); }
+  #password-gate button {
+    width: 100%;
+    max-width: 280px;
+    background: var(--gold);
+    border: none;
+    color: var(--ink);
+    padding: 0.85rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-style: italic;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.3);
+  }
+  #gate-error {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: #ff8a80;
+    margin-top: 0.75rem;
+    letter-spacing: 0.08em;
+    display: none;
+  }
 </style>
 </head>
 <body>
+
+<!-- PASSWORD GATE -->
+<div id="password-gate">
+  <h2>🐟 Tin Pact</h2>
+  <p>Enter the password to continue</p>
+  <input type="password" id="gate-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()">
+  <button onclick="checkPassword()">Enter →</button>
+  <div id="gate-error">Wrong password. Try again.</div>
+</div>
 
 <header>
   <h1>🐟 Tin Pact</h1>
@@ -784,6 +860,27 @@
       previewImage(document.getElementById('f-image'));
     }
   });
+
+
+  // Password gate
+  function checkPassword() {
+    const val = document.getElementById('gate-input').value;
+    if (val === 'fishtins') {
+      localStorage.setItem('tinpact_auth', '1');
+      document.getElementById('password-gate').style.display = 'none';
+    } else {
+      document.getElementById('gate-error').style.display = 'block';
+      document.getElementById('gate-input').value = '';
+      document.getElementById('gate-input').focus();
+    }
+  }
+
+  // Check auth on load
+  if (localStorage.getItem('tinpact_auth') === '1') {
+    document.getElementById('password-gate').style.display = 'none';
+  } else {
+    setTimeout(() => document.getElementById('gate-input').focus(), 100);
+  }
 
   loadData();
   setInterval(loadData, 30000);
