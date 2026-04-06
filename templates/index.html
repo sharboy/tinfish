@@ -509,32 +509,6 @@
   .edit-btn:hover { color: var(--ocean); }
 
 
-  /* SCROLL SHRINK */
-  header {
-    transition: padding 0.3s ease;
-  }
-  header.shrunk {
-    padding: 0.4rem 1.5rem;
-  }
-  header.shrunk h1 {
-    font-size: 1.1rem;
-  }
-  header.shrunk p {
-    display: none;
-  }
-  .bottom-nav {
-    transition: height 0.3s ease;
-  }
-  .bottom-nav.shrunk {
-    height: calc(48px + env(safe-area-inset-bottom));
-  }
-  .bottom-nav.shrunk .nav-label {
-    display: none;
-  }
-  .bottom-nav.shrunk .nav-icon {
-    font-size: 1.2rem;
-  }
-
   /* PASSWORD GATE */
   #password-gate {
     position: fixed;
@@ -1089,24 +1063,6 @@
   // Close modal on overlay click
   document.getElementById('edit-modal').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
-  });
-
-
-  // Shrink header/nav on scroll
-  let lastScroll = 0;
-  document.querySelectorAll('.page').forEach(page => {
-    page.addEventListener('scroll', () => {
-      const scrollY = page.scrollTop;
-      const header = document.querySelector('header');
-      const nav = document.querySelector('.bottom-nav');
-      if (scrollY > 60) {
-        header.classList.add('shrunk');
-        nav.classList.add('shrunk');
-      } else {
-        header.classList.remove('shrunk');
-        nav.classList.remove('shrunk');
-      }
-    });
   });
 
   loadData();
