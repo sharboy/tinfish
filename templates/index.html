@@ -508,6 +508,33 @@
   }
   .edit-btn:hover { color: var(--ocean); }
 
+
+  /* SCROLL SHRINK */
+  header {
+    transition: padding 0.3s ease;
+  }
+  header.shrunk {
+    padding: 0.4rem 1.5rem;
+  }
+  header.shrunk h1 {
+    font-size: 1.1rem;
+  }
+  header.shrunk p {
+    display: none;
+  }
+  .bottom-nav {
+    transition: height 0.3s ease;
+  }
+  .bottom-nav.shrunk {
+    height: calc(48px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav.shrunk .nav-label {
+    display: none;
+  }
+  .bottom-nav.shrunk .nav-icon {
+    font-size: 1.2rem;
+  }
+
   /* PASSWORD GATE */
   #password-gate {
     position: fixed;
@@ -637,18 +664,18 @@
             <input type="date" id="f-date">
           </div>
           <div class="field">
-            <label>Type of Tin (optional)</label>
-            <select id="f-type" onchange="handleTypeChange(this)">
+            <label>Type of Tin</label>
+            <select id="f-type" onchange="handleTypeChange(this)" required>
               <option value="">— Select —</option>
-              <option>Sardines</option>
               <option>Anchovies</option>
-              <option>Tuna</option>
-              <option>Mackerel</option>
-              <option>Salmon</option>
               <option>Herring</option>
+              <option>Mackerel</option>
               <option>Mussels</option>
               <option>Oysters</option>
+              <option>Salmon</option>
+              <option>Sardines</option>
               <option>Squid</option>
+              <option>Tuna</option>
               <option value="__other__">Other…</option>
             </select>
             <input type="text" id="f-type-custom" placeholder="Type of tin" style="display:none;margin-top:0.5rem">
@@ -742,15 +769,15 @@
         <label>Type of Tin</label>
         <select id="edit-type" onchange="handleEditTypeChange(this)">
           <option value="">— Select —</option>
-          <option>Sardines</option>
           <option>Anchovies</option>
-          <option>Tuna</option>
-          <option>Mackerel</option>
-          <option>Salmon</option>
           <option>Herring</option>
+          <option>Mackerel</option>
           <option>Mussels</option>
           <option>Oysters</option>
+          <option>Salmon</option>
+          <option>Sardines</option>
           <option>Squid</option>
+          <option>Tuna</option>
           <option value="__other__">Other…</option>
         </select>
         <input type="text" id="edit-type-custom" placeholder="Type of tin" style="display:none;margin-top:0.5rem">
@@ -895,6 +922,7 @@
 
     if (!name) return showMsg('Please enter your name.', 'error');
     if (!tins || parseInt(tins) < 1) return showMsg('Enter at least 1 tin.', 'error');
+    if (!tinType) return showMsg('Please select a type of tin.', 'error');
 
     const fd = new FormData();
     fd.append('name', name);
@@ -1061,6 +1089,24 @@
   // Close modal on overlay click
   document.getElementById('edit-modal').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
+  });
+
+
+  // Shrink header/nav on scroll
+  let lastScroll = 0;
+  document.querySelectorAll('.page').forEach(page => {
+    page.addEventListener('scroll', () => {
+      const scrollY = page.scrollTop;
+      const header = document.querySelector('header');
+      const nav = document.querySelector('.bottom-nav');
+      if (scrollY > 60) {
+        header.classList.add('shrunk');
+        nav.classList.add('shrunk');
+      } else {
+        header.classList.remove('shrunk');
+        nav.classList.remove('shrunk');
+      }
+    });
   });
 
   loadData();
