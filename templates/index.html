@@ -451,6 +451,20 @@
   }
   .desktop-progress-bar { display: none; }
 
+  /* TIN REPORT */
+  .report-row {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .report-row:last-child { border-bottom: none; }
+  .report-emoji { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.05rem; }
+  .report-text { font-size: 0.85rem; line-height: 1.45; color: var(--ink); }
+  .report-text strong { color: var(--ocean); }
+  .report-text.scold strong { color: var(--rust); }
+
   /* EDIT MODAL */
   .modal-overlay {
     position: fixed;
@@ -801,6 +815,11 @@
           <div id="leaderboard-rows"></div>
         </div>
 
+        <div class="leaderboard" id="tin-report-wrap">
+          <h3>📣 Tin Report</h3>
+          <div id="tin-report-rows"></div>
+        </div>
+
         <div class="section-title">The Chronicle</div>
         <div id="entries-list">
           <div class="empty-state"><div class="fish">🐟</div><p>No tins logged yet.<br>Be the first.</p></div>
@@ -977,6 +996,7 @@
     document.getElementById('stat-pct').textContent = pct + '%';
 
     renderLeaderboard();
+    renderTinReport();
     renderEntries();
     renderStats();
   }
@@ -1212,6 +1232,101 @@
     if (e.target === this) closeEditModal();
   });
 
+
+
+  function renderTinReport() {
+    if (!appData || !appData.entries || !appData.entries.length) {
+      document.getElementById('tin-report-rows').innerHTML = '<div class="report-row"><span class="report-emoji">🎣</span><div class="report-text">No tins logged yet. Someone needs to get eating.</div></div>';
+      return;
+    }
+
+    const entries = appData.entries;
+    const byPerson = {};
+    const lastEaten = {};
+    entries.forEach(e => {
+      byPerson[e.name] = (byPerson[e.name] || 0) + e.tins;
+      if (!lastEaten[e.name] || e.date > lastEaten[e.name]) lastEaten[e.name] = e.date;
+    });
+
+    const sorted = Object.entries(byPerson).sort((a,b) => b[1]-a[1]);
+    const today = new Date().toISOString().split('T')[0];
+    const total = Object.values(byPerson).reduce((s,v) => s+v, 0);
+
+    // Praise taglines (for top performers)
+    const praiseLines = [
+      (name, n) => `<strong>${name}</strong> is an absolute unit — ${n} tins deep and showing no signs of stopping. A legend in the making.`,
+      (name, n) => `Somebody get <strong>${name}</strong> a trophy. ${n} tins? That's not eating, that's a lifestyle.`,
+      (name, n) => `<strong>${name}</strong> has entered their tinned fish era and we are HERE for it. ${n} tins and counting.`,
+      (name, n) => `The ocean trembles at the name of <strong>${name}</strong>. ${n} tins consumed. Respectfully.`,
+      (name, n) => `<strong>${name}</strong> could open a tin blindfolded at this point. ${n} tins of pure dedication.`,
+      (name, n) => `Marine biologists fear <strong>${name}</strong>. ${n} tins in and still hungry. Iconic.`,
+      (name, n) => `<strong>${name}</strong> doesn't snack. <strong>${name}</strong> commits. ${n} tins is proof.`,
+      (name, n) => `At ${n} tins, <strong>${name}</strong> is practically a sardine themselves. We stan.`,
+      (name, n) => `<strong>${name}</strong> wakes up, eats tins, repeats. ${n} and counting. A true professional.`,
+      (name, n) => `If tinned fish had a hall of fame, <strong>${name}</strong> would have their own wing. ${n} tins.`,
+      (name, n) => `<strong>${name}</strong> said "200 tins? Hold my anchovy." ${n} in already.`,
+      (name, n) => `${n} tins. <strong>${name}</strong>. The rest of you are taking notes, right?`,
+      (name, n) => `<strong>${name}</strong> is carrying this group on their back like a very oily, very determined sardine.`,
+      (name, n) => `Scientists have yet to explain how <strong>${name}</strong> fits ${n} tins into their schedule. Respect.`,
+      (name, n) => `<strong>${name}</strong> looked at the goal and said "that's just a warm-up." ${n} tins in.`,
+    ];
+
+    // Scold taglines (for laggards)
+    const scoldLines = [
+      (name, n) => `<strong>${name}</strong> has eaten ${n} tin${n!==1?'s':''}. The fish are literally begging to be eaten and yet. Nothing.`,
+      (name, n) => `${n} tin${n!==1?'s':''}. That's it. That's all <strong>${name}</strong> has contributed. The group is disappointed.`,
+      (name, n) => `<strong>${name}</strong>, the tins aren't going to eat themselves. ${n} is not a number to be proud of.`,
+      (name, n) => `Somewhere, a sardine is waiting for <strong>${name}</strong> to do their part. ${n} tin${n!==1?'s':''} so far. Tragic.`,
+      (name, n) => `<strong>${name}</strong> has been spotted near a supermarket but has ${n} tin${n!==1?'s':''} to show for it. Suspicious.`,
+      (name, n) => `${n} tin${n!==1?'s':''}. <strong>${name}</strong>, are you even trying? The mackerel are watching.`,
+      (name, n) => `<strong>${name}</strong>'s contribution of ${n} tin${n!==1?'s':''} has been noted. And judged. Mostly judged.`,
+      (name, n) => `At this rate, <strong>${name}</strong> will hit the goal sometime in 2031. Pick it up. ${n} tin${n!==1?'s':''} is embarrassing.`,
+      (name, n) => `<strong>${name}</strong>. Buddy. Pal. ${n} tin${n!==1?'s':''}? The group has a goal. You have excuses. Eat the fish.`,
+      (name, n) => `The herring have feelings too, <strong>${name}</strong>, and they're feeling neglected. ${n} tin${n!==1?'s':''}.`,
+      (name, n) => `<strong>${name}</strong> has logged ${n} tin${n!==1?'s':''}. That's fewer tins than fingers on one hand. Get it together.`,
+      (name, n) => `A ghost has eaten more tins than <strong>${name}</strong> this month. ${n}. Think about that.`,
+      (name, n) => `<strong>${name}</strong>, the team is not angry. Just disappointed. ${n} tin${n!==1?'s':''} in a month is a cry for help.`,
+      (name, n) => `${n} tin${n!==1?'s':''}? <strong>${name}</strong>, even the cat would have done better. And the cat isn't even on the team.`,
+      (name, n) => `<strong>${name}</strong> has been MIA from the tin front. ${n} logged. The sardines are shaking their tiny heads.`,
+    ];
+
+    const rows = [];
+    const midpoint = Math.floor(sorted.length / 2);
+
+    // Use name+tins as a seed for consistent-but-varied line selection
+    function seedIndex(name, tins, arr) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % arr.length;
+      return (hash + tins) % arr.length;
+    }
+
+    sorted.forEach(([name, tins], i) => {
+      const isTop = i <= midpoint && tins > 0;
+      const isBottom = i > midpoint || tins === 0;
+      if (isTop && tins >= 3) {
+        const idx = seedIndex(name, tins, praiseLines);
+        const text = praiseLines[idx](name, tins);
+        const emojis = ['🔥','⭐','💪','🐟','👑','🎖️','🏅'];
+        rows.push({ emoji: emojis[idx % emojis.length], text, scold: false });
+      } else if (isBottom || tins < 3) {
+        const idx = seedIndex(name, tins, scoldLines);
+        const text = scoldLines[idx](name, tins);
+        const emojis = ['😤','👀','🫵','😬','🚨','💀','😒'];
+        rows.push({ emoji: emojis[idx % emojis.length], text, scold: true });
+      }
+    });
+
+    if (!rows.length) {
+      document.getElementById('tin-report-rows').innerHTML = '<div class="report-row"><span class="report-emoji">🎣</span><div class="report-text">Log some tins to unlock the Tin Report.</div></div>';
+      return;
+    }
+
+    document.getElementById('tin-report-rows').innerHTML = rows.map(r => `
+      <div class="report-row">
+        <span class="report-emoji">${r.emoji}</span>
+        <div class="report-text${r.scold ? ' scold' : ''}">${r.text}</div>
+      </div>`).join('');
+  }
 
   function renderStats() {
     if (!appData || !appData.entries) return;
