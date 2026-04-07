@@ -313,6 +313,8 @@ def send_slacker_sms(name, days):
 
 def _send_sms_to_all(msg):
     auth = base64.b64encode(f"{TWILIO_SID}:{TWILIO_TOKEN}".encode()).decode()
+    print(f"SMS: attempting to send to {len(TWILIO_RECIPIENTS)} recipients")
+    print(f"SMS: from={TWILIO_FROM}, sid={TWILIO_SID[:8]}...")
     for number in TWILIO_RECIPIENTS:
         try:
             data = urllib.parse.urlencode({
@@ -329,7 +331,12 @@ def _send_sms_to_all(msg):
                 },
                 method='POST'
             )
-            urllib.request.urlopen(req)
+            with urllib.request.urlopen(req) as resp:
+                result = jsonlib.loads(resp.read())
+                print(f"SMS sent to {number}: sid={result.get('sid')}, status={result.get('status')}")
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode()
+            print(f"SMS HTTP error to {number}: {e.code} {error_body}")
         except Exception as e:
             print(f"SMS error to {number}: {e}")
 
