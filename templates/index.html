@@ -743,6 +743,88 @@
   .fun-fact-text { font-size: 0.85rem; color: var(--ink); line-height: 1.4; }
   .fun-fact-text strong { color: var(--ocean); }
 
+  /* SINCE YOU WERE GONE BANNER */
+  #since-banner {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 0.85rem 1rem;
+    position: relative;
+    border-bottom: 3px solid var(--gold);
+    animation: slideDown 0.4s ease;
+    display: none;
+  }
+  #since-banner.visible { display: block; }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-100%); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .since-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+  }
+  .since-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .since-close {
+    background: none;
+    border: none;
+    color: var(--silver);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .since-close:hover { color: white; }
+  .since-items { display: flex; flex-direction: column; gap: 0.4rem; }
+  .since-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.83rem;
+    color: var(--cream);
+  }
+  .since-item-tins {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .since-item-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--silver);
+  }
+  .since-item-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  .since-progress {
+    height: 2px;
+    background: rgba(255,255,255,0.1);
+    margin-top: 0.75rem;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .since-progress-fill {
+    height: 100%;
+    background: var(--gold);
+    width: 100%;
+    transform-origin: left;
+    animation: drainBar 8s linear forwards;
+  }
+  @keyframes drainBar {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+  }
+
   /* SPLASH SCREEN */
   #splash {
     position: fixed;
@@ -928,6 +1010,16 @@
   <h1><span id="fish-btn" onclick="toggleMusic()" style="cursor:pointer;user-select:none;-webkit-user-select:none">🐟</span> Tin Pact</h1>
   <p>A Collective Tinned Fish Tracker</p>
 </header>
+
+<!-- SINCE YOU WERE GONE BANNER -->
+<div id="since-banner">
+  <div class="since-header">
+    <span class="since-title">🐟 While you were gone…</span>
+    <button class="since-close" onclick="dismissSinceBanner()">✕</button>
+  </div>
+  <div class="since-items" id="since-items"></div>
+  <div class="since-progress"><div class="since-progress-fill" id="since-progress-fill"></div></div>
+</div>
 
 <!-- Desktop-only progress bar -->
 <div class="desktop-progress-bar">
@@ -1198,6 +1290,7 @@
 
 <script>
   let appData = { target: 100, entries: [] };
+  let sinceBannerChecked = false;
   // Set today's date in EST
   function getTodayEST() {
     const now = new Date();
@@ -1266,6 +1359,7 @@
     renderTinReport();
     renderEntries();
     renderStats();
+    if (!sinceBannerChecked) { checkSinceBanner(); sinceBannerChecked = true; }
   }
 
   function renderLeaderboard() {
@@ -1415,6 +1509,55 @@
   });
 
 
+
+
+  // Since you were gone banner
+  const LAST_VISIT_KEY = 'tinpact_last_visit';
+
+  function checkSinceBanner() {
+    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+    const now = new Date().toISOString();
+
+    if (lastVisit && appData.entries && appData.entries.length) {
+      const newEntries = appData.entries.filter(e => e.timestamp > lastVisit);
+      const myName = localStorage.getItem('tinpact_name') || '';
+
+      // Only show entries from OTHER people
+      const othersEntries = newEntries.filter(e => e.name.toLowerCase() !== myName.toLowerCase());
+
+      if (othersEntries.length > 0) {
+        const sorted = othersEntries.sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
+        document.getElementById('since-items').innerHTML = sorted.map(e => `
+          <div class="since-item">
+            <span>🥫</span>
+            <span><strong>${esc(e.name)}</strong> ate <span class="since-item-tins">${e.tins} tin${e.tins!==1?'s':''}</span></span>
+            ${e.tin_type ? `<span class="since-item-type">${esc(e.tin_type)}</span>` : ''}
+            <span class="since-item-date">${formatDate(e.date)}</span>
+          </div>`).join('');
+
+        const banner = document.getElementById('since-banner');
+        banner.classList.add('visible');
+
+        // Reset animation by replacing element
+        const fill = document.getElementById('since-progress-fill');
+        const newFill = fill.cloneNode(true);
+        fill.parentNode.replaceChild(newFill, fill);
+
+        // Auto dismiss after 8 seconds
+        setTimeout(() => dismissSinceBanner(), 8000);
+      }
+    }
+
+    // Update last visit time
+    localStorage.setItem(LAST_VISIT_KEY, now);
+  }
+
+  function dismissSinceBanner() {
+    const banner = document.getElementById('since-banner');
+    banner.style.transition = 'opacity 0.3s ease';
+    banner.style.opacity = '0';
+    setTimeout(() => { banner.classList.remove('visible'); banner.style.opacity = ''; banner.style.transition = ''; }, 300);
+  }
 
   // Splash screen - version key controls who sees it
   const SPLASH_VERSION = 'v2';
