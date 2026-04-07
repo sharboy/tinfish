@@ -512,6 +512,77 @@
   #lightbox-close:hover { opacity: 1; }
   .entry-img-wrap img { cursor: zoom-in; }
 
+  /* REACTIONS */
+  .reaction-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+    padding: 0.4rem 0.9rem 0.6rem;
+    border-top: 1px solid #f0ece4;
+  }
+  .reaction-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    background: var(--paper);
+    border: 1.5px solid #ddd;
+    border-radius: 20px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .reaction-pill:hover { border-color: var(--ocean); background: white; }
+  .reaction-pill.mine { border-color: var(--ocean); background: rgba(26,58,74,0.08); }
+  .reaction-pill .r-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+  .reaction-pill.mine .r-count { color: var(--ocean); }
+  .react-btn {
+    background: none;
+    border: 1.5px dashed #ccc;
+    border-radius: 20px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .react-btn:hover { border-color: var(--ocean); color: var(--ocean); }
+
+  /* EMOJI PICKER */
+  .emoji-picker {
+    position: absolute;
+    background: white;
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    border-radius: 0;
+    padding: 0.5rem;
+    display: flex;
+    gap: 0.3rem;
+    z-index: 200;
+    animation: popIn 0.15s ease;
+  }
+  @keyframes popIn { from { opacity:0; transform:scale(0.85); } to { opacity:1; transform:scale(1); } }
+  .emoji-picker button {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0.2rem 0.3rem;
+    border-radius: 4px;
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .emoji-picker button:hover { background: var(--paper); }
+  .entry-card { position: relative; }
+
   /* COMMENTS */
   .comment {
     padding: 0.7rem 0;
@@ -1331,6 +1402,8 @@
         const cc = await ccRes.json();
         appData.commentCounts = cc;
       }
+      // Load reactions
+      await loadReactions();
       renderAll();
     } catch(e) {}
   }
@@ -1403,6 +1476,10 @@
           ${e.note?`<div class="entry-note">"${esc(e.note)}"</div>`:''}
         </div>
         ${e.image?`<div class="entry-img-wrap"><img src="${e.image}" loading="lazy" onclick="openLightbox('${e.image}', event)"></div>`:''}
+        <div class="reaction-bar" onclick="event.stopPropagation()">
+          ${renderReactionPills(e.id)}
+          <button class="react-btn" onclick="showEmojiPicker('${e.id}', this)">＋ 😊</button>
+        </div>
       </div>`).join('');
   }
 
@@ -1918,6 +1995,65 @@
     if (e.target === this) closeDetailModal();
   });
 
+
+  let reactionData = {}; // entry_id -> {emoji -> [reactors]}
+  let pickerEntryId = null;
+
+  async function loadReactions() {
+    try {
+      const res = await fetch('/api/reaction-counts');
+      if (res.ok) reactionData = await res.json();
+    } catch(e) {}
+  }
+
+  function renderReactionPills(entryId) {
+    const myName = localStorage.getItem('tinpact_name') || '';
+    const emojiMap = reactionData[entryId] || {};
+    return Object.entries(emojiMap).map(([emoji, reactors]) => {
+      const isMine = myName && reactors.map(r => r.toLowerCase()).includes(myName.toLowerCase());
+      return `<button class="reaction-pill ${isMine ? 'mine' : ''}" onclick="castReaction('${emoji}', '${entryId}')">${emoji} <span class="r-count">${reactors.length}</span></button>`;
+    }).join('');
+  }
+
+  function showEmojiPicker(entryId, btn) {
+    pickerEntryId = entryId;
+    const picker = document.getElementById('emoji-picker');
+    const rect = btn.getBoundingClientRect();
+    picker.style.display = 'flex';
+    picker.style.position = 'fixed';
+    picker.style.top = (rect.top - picker.offsetHeight - 8) + 'px';
+    picker.style.left = rect.left + 'px';
+    // Adjust if off screen
+    setTimeout(() => {
+      const pr = picker.getBoundingClientRect();
+      if (pr.top < 0) picker.style.top = (rect.bottom + 8) + 'px';
+      if (pr.right > window.innerWidth) picker.style.left = (window.innerWidth - pr.width - 8) + 'px';
+    }, 0);
+  }
+
+  async function castReaction(emoji, entryId) {
+    document.getElementById('emoji-picker').style.display = 'none';
+    const id = entryId || pickerEntryId;
+    if (!id) return;
+    const myName = localStorage.getItem('tinpact_name') || '';
+    if (!myName) { alert('Enter your name in Log a Tin first!'); return; }
+    await fetch(`/api/entry/${id}/reactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reactor: myName, emoji })
+    });
+    await loadReactions();
+    renderEntries();
+  }
+
+  // Close picker on outside click
+  document.addEventListener('click', e => {
+    const picker = document.getElementById('emoji-picker');
+    if (!picker.contains(e.target) && !e.target.classList.contains('react-btn')) {
+      picker.style.display = 'none';
+    }
+  });
+
   function renderStats() {
     if (!appData || !appData.entries) return;
     const entries = appData.entries;
@@ -2097,6 +2233,16 @@
 <div id="lightbox" onclick="closeLightbox()">
   <button id="lightbox-close" onclick="closeLightbox()">✕</button>
   <img id="lightbox-img" src="" alt="Full size photo">
+</div>
+
+
+<!-- EMOJI PICKER -->
+<div class="emoji-picker" id="emoji-picker" style="display:none">
+  <button onclick="castReaction('🐟')">🐟</button>
+  <button onclick="castReaction('🔥')">🔥</button>
+  <button onclick="castReaction('👑')">👑</button>
+  <button onclick="castReaction('🤢')">🤢</button>
+  <button onclick="castReaction('👏')">👏</button>
 </div>
 
 <!-- Easter egg audio -->

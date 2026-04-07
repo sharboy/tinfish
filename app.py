@@ -541,6 +541,57 @@ def cast_vote():
         supabase_request('POST', 'votes', vote)
         return jsonify({"success": True, "action": "added"})
 
+
+@app.route('/api/entry/<entry_id>/reactions', methods=['GET'])
+def get_reactions(entry_id):
+    reactions = supabase_request('GET', f"reactions?entry_id=eq.{entry_id}&select=*")
+    if reactions is None:
+        reactions = []
+    return jsonify({"reactions": reactions})
+
+@app.route('/api/entry/<entry_id>/reactions', methods=['POST'])
+def toggle_reaction(entry_id):
+    data = request.json
+    reactor = data.get('reactor', '').strip()
+    emoji = data.get('emoji', '').strip()
+    if not reactor or not emoji:
+        return jsonify({"error": "Reactor and emoji required"}), 400
+    
+    # Check if reaction already exists
+    existing = supabase_request('GET', f"reactions?entry_id=eq.{entry_id}&reactor=eq.{urllib.parse.quote(reactor)}&emoji=eq.{urllib.parse.quote(emoji)}&select=*")
+    if existing:
+        # Remove it (toggle off)
+        supabase_request('DELETE', f"reactions?entry_id=eq.{entry_id}&reactor=eq.{urllib.parse.quote(reactor)}&emoji=eq.{urllib.parse.quote(emoji)}")
+        return jsonify({"success": True, "action": "removed"})
+    else:
+        # Add it
+        reaction = {
+            "id": uuid.uuid4().hex,
+            "entry_id": entry_id,
+            "reactor": reactor,
+            "emoji": emoji
+        }
+        supabase_request('POST', 'reactions', reaction)
+        return jsonify({"success": True, "action": "added"})
+
+@app.route('/api/reaction-counts', methods=['GET'])
+def reaction_counts():
+    reactions = supabase_request('GET', "reactions?select=entry_id,emoji,reactor")
+    if not reactions:
+        return jsonify({})
+    # Build map: entry_id -> {emoji -> [reactors]}
+    counts = {}
+    for r in reactions:
+        eid = r['entry_id']
+        emoji = r['emoji']
+        reactor = r['reactor']
+        if eid not in counts:
+            counts[eid] = {}
+        if emoji not in counts[eid]:
+            counts[eid][emoji] = []
+        counts[eid][emoji].append(reactor)
+    return jsonify(counts)
+
 @app.route('/api/slacker-check', methods=['POST'])
 def slacker_check():
     # Protected endpoint - only callable with admin key
