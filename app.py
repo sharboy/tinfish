@@ -172,6 +172,18 @@ def edit_entry(entry_id):
     return jsonify({"success": True})
 
 
+
+@app.route('/api/comment-counts', methods=['GET'])
+def comment_counts():
+    comments = supabase_request('GET', "comments?select=entry_id")
+    if not comments:
+        return jsonify({})
+    counts = {}
+    for c in comments:
+        eid = c['entry_id']
+        counts[eid] = counts.get(eid, 0) + 1
+    return jsonify(counts)
+
 @app.route('/api/entry/<entry_id>/comments', methods=['GET'])
 def get_comments(entry_id):
     comments = supabase_request('GET', f"comments?entry_id=eq.{entry_id}&select=*&order=timestamp.asc")

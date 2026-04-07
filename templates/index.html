@@ -451,6 +451,18 @@
   }
   .desktop-progress-bar { display: none; }
 
+  .comment-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+  .comment-count.has-comments {
+    color: var(--ocean);
+  }
+
   /* TIN REPORT */
   .report-row {
     padding: 0.7rem 1rem;
@@ -1083,6 +1095,12 @@
     try {
       const res = await fetch('/api/data');
       appData = await res.json();
+      // Load comment counts
+      const ccRes = await fetch('/api/comment-counts');
+      if (ccRes.ok) {
+        const cc = await ccRes.json();
+        appData.commentCounts = cc;
+      }
       renderAll();
     } catch(e) {}
   }
@@ -1147,6 +1165,7 @@
             <span class="entry-tins">🥫 ${e.tins} tin${e.tins!==1?'s':''}</span>
             ${e.tin_type?`<span style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);background:var(--paper);padding:0.1rem 0.4rem">${esc(e.tin_type)}</span>`:''}
             <span class="entry-date">${formatDate(e.date)}</span>
+            ${(()=>{ const n = appData.commentCounts?.[e.id] || 0; return n > 0 ? `<span class="comment-count has-comments">💬 ${n}</span>` : ''; })()}
             ${isAdmin ? `<button class="edit-btn" onclick="event.stopPropagation();openEditModal('${e.id}')">✎</button>` : ''}
             ${isAdmin ? `<button class="delete-btn" onclick="event.stopPropagation();deleteEntry('${e.id}')">✕</button>` : ''}
           </div>
