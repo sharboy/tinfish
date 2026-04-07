@@ -477,6 +477,41 @@
   .report-text strong { color: var(--ocean); }
   .report-text.scold strong { color: var(--rust); }
 
+  /* LIGHTBOX */
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    cursor: zoom-out;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  }
+  #lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.75rem;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+  }
+  #lightbox-close:hover { opacity: 1; }
+  .entry-img-wrap img { cursor: zoom-in; }
+
   /* COMMENTS */
   .comment {
     padding: 0.7rem 0;
@@ -1171,7 +1206,7 @@
           </div>
           ${e.note?`<div class="entry-note">"${esc(e.note)}"</div>`:''}
         </div>
-        ${e.image?`<div class="entry-img-wrap"><img src="${e.image}" loading="lazy"></div>`:''}
+        ${e.image?`<div class="entry-img-wrap"><img src="${e.image}" loading="lazy" onclick="openLightbox('${e.image}', event)"></div>`:''}
       </div>`).join('');
   }
 
@@ -1470,7 +1505,7 @@
     document.getElementById('detail-title').textContent = `${esc(e.name)}'s Tin`;
     document.getElementById('detail-entry').innerHTML = `
       <div style="display:flex;gap:0.75rem;align-items:flex-start">
-        ${e.image ? `<img src="${e.image}" style="width:80px;height:80px;object-fit:cover;border:1.5px solid var(--ink);flex-shrink:0">` : ''}
+        ${e.image ? `<img src="${e.image}" style="width:80px;height:80px;object-fit:cover;border:1.5px solid var(--ink);flex-shrink:0;cursor:zoom-in" onclick="openLightbox('${e.image}', event)">` : ''}
         <div>
           <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--ocean)">🥫 ${e.tins} tin${e.tins!==1?'s':''}</div>
           ${e.tin_type ? `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);margin-top:0.2rem">${esc(e.tin_type)}</div>` : ''}
@@ -1794,6 +1829,13 @@
   setInterval(loadData, 30000);
 </script>
 
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="Full size photo">
+</div>
+
 <!-- Easter egg audio -->
 <audio id="bg-music" loop>
   <source src="https://res.cloudinary.com/dsoacvo9g/video/upload/v1775519117/TENTEN_aemhpd.mp3" type="audio/mpeg">
@@ -1803,6 +1845,17 @@
   let musicPlaying = false;
   const music = document.getElementById('bg-music');
   const fishBtn = document.getElementById('fish-btn');
+
+
+  function openLightbox(src, e) {
+    e.stopPropagation();
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('open');
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
   function toggleMusic() {
     if (musicPlaying) {
