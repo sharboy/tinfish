@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tin Pact — Terms & Privacy</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --ocean: #1a3a4a;
+    --ink: #1e1a14;
+    --muted: #7a7060;
+    --gold: #c9962b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--cream); color: var(--ink); font-family: 'DM Sans', sans-serif; }
+  header {
+    background: var(--ocean);
+    color: var(--cream);
+    padding: 1.5rem 2rem;
+    border-bottom: 3px solid var(--gold);
+    text-align: center;
+  }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 1.75rem; }
+  header p { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; color: #a8b5b0; margin-top: 0.3rem; text-transform: uppercase; }
+  .content { max-width: 680px; margin: 0 auto; padding: 3rem 1.5rem; }
+  h2 { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-style: italic; color: var(--ocean); margin: 2rem 0 0.75rem; border-bottom: 1px solid #ddd; padding-bottom: 0.4rem; }
+  h2:first-child { margin-top: 0; }
+  p { font-size: 0.95rem; line-height: 1.7; color: var(--ink); margin-bottom: 0.75rem; }
+  ul { padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  li { font-size: 0.95rem; line-height: 1.7; margin-bottom: 0.3rem; }
+  .meta { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); margin-bottom: 2rem; letter-spacing: 0.05em; }
+  a { color: var(--ocean); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🐟 Tin Pact</h1>
+  <p>Terms, Conditions & Privacy Policy</p>
+</header>
+<div class="content">
+  <p class="meta">Last updated: April 2026</p>
+
+  <h2>About This App</h2>
+  <p>Tin Pact is a private, invite-only web application used by a small group of friends to track their collective tinned fish consumption. It is not a public service and is not available to the general public.</p>
+
+  <h2>SMS Notifications</h2>
+  <p>Tin Pact may send SMS notifications to members of the group when a new tin is logged. These notifications are only sent to individuals who have explicitly provided their phone number to the app owner and consented to receive messages.</p>
+  <ul>
+    <li>Message frequency varies based on group activity, typically a few messages per day</li>
+    <li>Message and data rates may apply depending on your carrier plan</li>
+    <li>To opt out of SMS notifications at any time, reply <strong>STOP</strong> to any message</li>
+    <li>To get help, reply <strong>HELP</strong> to any message</li>
+    <li>Opting out will remove you from all future notifications</li>
+  </ul>
+
+  <h2>Data We Collect</h2>
+  <p>Tin Pact collects the following information submitted by users:</p>
+  <ul>
+    <li>Name (as entered by the user)</li>
+    <li>Number of tins eaten and date</li>
+    <li>Type of tinned fish</li>
+    <li>Optional notes and photos</li>
+    <li>Comments and votes on entries</li>
+    <li>Phone numbers (provided directly to the app owner for SMS notifications only)</li>
+  </ul>
+
+  <h2>How We Use Your Data</h2>
+  <p>All data collected is used solely to operate the Tin Pact app for the private group. We do not sell, share, or distribute any personal information to third parties. Phone numbers are used exclusively to send tin logging notifications and are never shared.</p>
+
+  <h2>Data Storage</h2>
+  <p>App data is stored securely using Supabase. Photos are stored using Cloudinary. SMS notifications are sent via Twilio. These are reputable third-party services with their own privacy and security standards.</p>
+
+  <h2>Contact</h2>
+  <p>For any questions or to be removed from the notification list, contact the app owner directly.</p>
+</div>
+</body>
+</html>

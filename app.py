@@ -77,6 +77,11 @@ def upload_to_cloudinary(file_bytes, public_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
 @app.route('/')
 def index():
     return render_template('index.html')
