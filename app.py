@@ -171,5 +171,85 @@ def edit_entry(entry_id):
         return jsonify({"error": "Failed to update entry"}), 500
     return jsonify({"success": True})
 
+
+@app.route('/api/entry/<entry_id>/comments', methods=['GET'])
+def get_comments(entry_id):
+    comments = supabase_request('GET', f"comments?entry_id=eq.{entry_id}&select=*&order=timestamp.asc")
+    if comments is None:
+        comments = []
+    votes = supabase_request('GET', f"votes?comment_id=in.({','.join([c['id'] for c in comments]) if comments else 'null'}}&select=*")
+    if votes is None:
+        votes = []
+    return jsonify({"comments": comments, "votes": votes})
+
+@app.route('/api/entry/<entry_id>/comments', methods=['POST'])
+def add_comment(entry_id):
+    data = request.json
+    author = data.get('author', '').strip()
+    body = data.get('body', '').strip()
+    if not author or not body:
+        return jsonify({"error": "Author and body required"}), 400
+    comment = {
+        "id": uuid.uuid4().hex,
+        "entry_id": entry_id,
+        "author": author,
+        "body": body,
+        "timestamp": datetime.now(zoneinfo.ZoneInfo('America/New_York')).isoformat()
+    }
+    result = supabase_request('POST', 'comments', comment)
+    if result is None:
+        return jsonify({"error": "Failed to save comment"}), 500
+    return jsonify({"success": True, "comment": comment})
+
+@app.route('/api/comments/<comment_id>', methods=['PATCH'])
+def edit_comment(comment_id):
+    body = request.json.get('body', '').strip()
+    author = request.json.get('author', '').strip()
+    if not body:
+        return jsonify({"error": "Body required"}), 400
+    result = supabase_request('PATCH', f"comments?id=eq.{comment_id}&author=eq.{urllib.parse.quote(author)}", {"body": body})
+    return jsonify({"success": True})
+
+@app.route('/api/comments/<comment_id>', methods=['DELETE'])
+def delete_comment(comment_id):
+    key = request.json.get('key', '') if request.json else ''
+    author = request.json.get('author', '') if request.json else ''
+    if key == 'fishtins':
+        supabase_request('DELETE', f"comments?id=eq.{comment_id}")
+    elif author:
+        supabase_request('DELETE', f"comments?id=eq.{comment_id}&author=eq.{urllib.parse.quote(author)}")
+    else:
+        return jsonify({"error": "Unauthorized"}), 403
+    return jsonify({"success": True})
+
+@app.route('/api/votes', methods=['POST'])
+def cast_vote():
+    data = request.json
+    comment_id = data.get('comment_id')
+    voter = data.get('voter', '').strip()
+    value = data.get('value')
+    if not comment_id or not voter or value not in [1, -1]:
+        return jsonify({"error": "Invalid vote"}), 400
+    # Check existing vote
+    existing = supabase_request('GET', f"votes?comment_id=eq.{comment_id}&voter=eq.{urllib.parse.quote(voter)}&select=*")
+    if existing:
+        if existing[0]['value'] == value:
+            # Same vote - remove it
+            supabase_request('DELETE', f"votes?comment_id=eq.{comment_id}&voter=eq.{urllib.parse.quote(voter)}")
+            return jsonify({"success": True, "action": "removed"})
+        else:
+            # Different vote - update it
+            supabase_request('PATCH', f"votes?comment_id=eq.{comment_id}&voter=eq.{urllib.parse.quote(voter)}", {"value": value})
+            return jsonify({"success": True, "action": "updated"})
+    else:
+        vote = {
+            "id": uuid.uuid4().hex,
+            "comment_id": comment_id,
+            "voter": voter,
+            "value": value
+        }
+        supabase_request('POST', 'votes', vote)
+        return jsonify({"success": True, "action": "added"})
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

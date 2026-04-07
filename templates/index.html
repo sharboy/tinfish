@@ -465,6 +465,85 @@
   .report-text strong { color: var(--ocean); }
   .report-text.scold strong { color: var(--rust); }
 
+  /* COMMENTS */
+  .comment {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #eee;
+  }
+  .comment:last-child { border-bottom: none; }
+  .comment-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+  }
+  .comment-author {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--ocean);
+  }
+  .comment-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+  .comment-body {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .comment-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+  }
+  .vote-btn {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+    color: var(--muted);
+  }
+  .vote-btn.active-up { border-color: #2e7d32; color: #2e7d32; background: #e8f5e9; }
+  .vote-btn.active-down { border-color: var(--rust); color: var(--rust); background: #fdecea; }
+  .vote-btn:hover { border-color: var(--ocean); color: var(--ocean); }
+  .comment-edit-btn, .comment-delete-btn {
+    background: none;
+    border: none;
+    font-size: 0.7rem;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    color: #ccc;
+    padding: 0;
+    transition: color 0.15s;
+  }
+  .comment-edit-btn:hover { color: var(--ocean); }
+  .comment-delete-btn:hover { color: var(--rust); }
+  .comment-edit-area {
+    width: 100%;
+    border: 1.5px solid var(--ocean);
+    padding: 0.5rem 0.65rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    resize: none;
+    min-height: 60px;
+    background: white;
+    outline: none;
+    border-radius: 0;
+    margin-top: 0.4rem;
+  }
+  .entry-card { cursor: pointer; transition: box-shadow 0.15s; }
+  .entry-card:hover { box-shadow: 3px 3px 0 var(--ink); }
+
   /* EDIT MODAL */
   .modal-overlay {
     position: fixed;
@@ -831,6 +910,30 @@
 </div>
 
 
+
+<!-- ENTRY DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3 id="detail-title">Tin Log</h3>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding-bottom:0">
+      <div id="detail-entry"></div>
+      <div style="margin-top:1.25rem;border-top:1.5px solid #eee;padding-top:1rem">
+        <div style="font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Comments</div>
+        <div id="detail-comments"></div>
+        <div id="comment-form" style="margin-top:1rem">
+          <textarea id="comment-body" placeholder="Add a comment…" style="width:100%;border:1.5px solid #ccc;padding:0.65rem 0.75rem;font-family:'DM Sans',sans-serif;font-size:0.95rem;resize:none;min-height:70px;background:var(--cream);outline:none;border-radius:0"></textarea>
+          <button onclick="submitComment()" style="width:100%;margin-top:0.5rem;background:var(--ocean);color:var(--cream);border:2px solid var(--ink);padding:0.75rem;font-family:'Playfair Display',serif;font-size:0.95rem;font-style:italic;cursor:pointer;box-shadow:3px 3px 0 var(--ink)">Post Comment →</button>
+          <div id="comment-msg" style="font-family:'DM Mono',monospace;font-size:0.7rem;margin-top:0.5rem;display:none"></div>
+        </div>
+      </div>
+    </div>
+    <div style="height:1.25rem"></div>
+  </div>
+</div>
+
 <!-- EDIT MODAL -->
 <div class="modal-overlay" id="edit-modal">
   <div class="modal">
@@ -1037,15 +1140,15 @@
     }
     const sorted = [...appData.entries].sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
     el.innerHTML = sorted.map(e => `
-      <div class="entry-card" id="entry-${e.id}">
+      <div class="entry-card" id="entry-${e.id}" onclick="openDetailModal('${e.id}')">
         <div class="entry-main">
           <div class="entry-meta">
             <span class="entry-name">${esc(e.name)}</span>
             <span class="entry-tins">🥫 ${e.tins} tin${e.tins!==1?'s':''}</span>
             ${e.tin_type?`<span style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);background:var(--paper);padding:0.1rem 0.4rem">${esc(e.tin_type)}</span>`:''}
             <span class="entry-date">${formatDate(e.date)}</span>
-            ${isAdmin ? `<button class="edit-btn" onclick="openEditModal('${e.id}')">✎</button>` : ''}
-            ${isAdmin ? `<button class="delete-btn" onclick="deleteEntry('${e.id}')">✕</button>` : ''}
+            ${isAdmin ? `<button class="edit-btn" onclick="event.stopPropagation();openEditModal('${e.id}')">✎</button>` : ''}
+            ${isAdmin ? `<button class="delete-btn" onclick="event.stopPropagation();deleteEntry('${e.id}')">✕</button>` : ''}
           </div>
           ${e.note?`<div class="entry-note">"${esc(e.note)}"</div>`:''}
         </div>
@@ -1336,6 +1439,167 @@
         <div class="report-text${r.scold ? ' scold' : ''}">${r.text}</div>
       </div>`).join('');
   }
+
+
+  let currentEntryId = null;
+
+  async function openDetailModal(id) {
+    currentEntryId = id;
+    const e = appData.entries.find(x => x.id === id);
+    if (!e) return;
+
+    document.getElementById('detail-title').textContent = `${esc(e.name)}'s Tin`;
+    document.getElementById('detail-entry').innerHTML = `
+      <div style="display:flex;gap:0.75rem;align-items:flex-start">
+        ${e.image ? `<img src="${e.image}" style="width:80px;height:80px;object-fit:cover;border:1.5px solid var(--ink);flex-shrink:0">` : ''}
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--ocean)">🥫 ${e.tins} tin${e.tins!==1?'s':''}</div>
+          ${e.tin_type ? `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);margin-top:0.2rem">${esc(e.tin_type)}</div>` : ''}
+          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);margin-top:0.2rem">${formatDate(e.date)}</div>
+          ${e.note ? `<div style="font-size:0.875rem;font-style:italic;color:var(--muted);margin-top:0.4rem">"${esc(e.note)}"</div>` : ''}
+        </div>
+      </div>`;
+
+    document.getElementById('comment-body').value = '';
+    document.getElementById('detail-modal').classList.add('open');
+    await loadComments(id);
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('open');
+    currentEntryId = null;
+  }
+
+  async function loadComments(entryId) {
+    const res = await fetch(`/api/entry/${entryId}/comments`);
+    const data = await res.json();
+    renderComments(data.comments, data.votes);
+  }
+
+  function renderComments(comments, votes) {
+    const el = document.getElementById('detail-comments');
+    const myName = localStorage.getItem('tinpact_name') || '';
+
+    if (!comments.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;font-style:italic;padding:0.5rem 0">No comments yet. Be the first!</div>';
+      return;
+    }
+
+    // Build vote map
+    const voteMap = {};
+    votes.forEach(v => { voteMap[v.comment_id] = voteMap[v.comment_id] || {}; voteMap[v.comment_id][v.voter] = v.value; });
+
+    // Calculate totals
+    const voteTotals = {};
+    votes.forEach(v => { voteTotals[v.comment_id] = (voteTotals[v.comment_id] || 0) + v.value; });
+
+    el.innerHTML = comments.map(c => {
+      const myVote = voteMap[c.id]?.[myName] || 0;
+      const total = voteTotals[c.id] || 0;
+      const isAuthor = myName && myName.toLowerCase() === c.author.toLowerCase();
+      const canDelete = isAuthor || isAdmin;
+      const ts = new Date(c.timestamp);
+      const timeStr = ts.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' at ' + ts.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', timeZone:'America/New_York' });
+
+      return `
+        <div class="comment" id="comment-${c.id}">
+          <div class="comment-header">
+            <span class="comment-author">${esc(c.author)}</span>
+            <span class="comment-time">${timeStr}</span>
+          </div>
+          <div class="comment-body" id="comment-body-${c.id}">${esc(c.body)}</div>
+          <div class="comment-actions">
+            <button class="vote-btn ${myVote===1?'active-up':''}" onclick="castVote('${c.id}', 1)">👍 ${total > 0 ? '+'+total : total < 0 ? total : ''}</button>
+            <button class="vote-btn ${myVote===-1?'active-down':''}" onclick="castVote('${c.id}', -1)">👎</button>
+            ${isAuthor ? `<button class="comment-edit-btn" onclick="startEditComment('${c.id}')">edit</button>` : ''}
+            ${canDelete ? `<button class="comment-delete-btn" onclick="deleteComment('${c.id}')">delete</button>` : ''}
+          </div>
+          <div id="comment-edit-${c.id}" style="display:none">
+            <textarea class="comment-edit-area" id="comment-edit-text-${c.id}">${esc(c.body)}</textarea>
+            <div style="display:flex;gap:0.5rem;margin-top:0.35rem">
+              <button onclick="saveCommentEdit('${c.id}')" style="background:var(--ocean);color:white;border:none;padding:0.35rem 0.75rem;font-family:'DM Mono',monospace;font-size:0.7rem;cursor:pointer">Save</button>
+              <button onclick="cancelCommentEdit('${c.id}')" style="background:none;border:1px solid #ccc;padding:0.35rem 0.75rem;font-family:'DM Mono',monospace;font-size:0.7rem;cursor:pointer">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function submitComment() {
+    const body = document.getElementById('comment-body').value.trim();
+    const author = localStorage.getItem('tinpact_name') || '';
+    if (!author) { showCommentMsg('Enter your name in the Log a Tin form first!', 'error'); return; }
+    if (!body) { showCommentMsg('Write something first!', 'error'); return; }
+    const res = await fetch(`/api/entry/${currentEntryId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author, body })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('comment-body').value = '';
+      await loadComments(currentEntryId);
+    } else {
+      showCommentMsg(data.error || 'Something went wrong', 'error');
+    }
+  }
+
+  function startEditComment(id) {
+    document.getElementById(`comment-body-${id}`).style.display = 'none';
+    document.getElementById(`comment-edit-${id}`).style.display = 'block';
+  }
+
+  function cancelCommentEdit(id) {
+    document.getElementById(`comment-body-${id}`).style.display = 'block';
+    document.getElementById(`comment-edit-${id}`).style.display = 'none';
+  }
+
+  async function saveCommentEdit(id) {
+    const body = document.getElementById(`comment-edit-text-${id}`).value.trim();
+    const author = localStorage.getItem('tinpact_name') || '';
+    if (!body) return;
+    await fetch(`/api/comments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body, author })
+    });
+    await loadComments(currentEntryId);
+  }
+
+  async function deleteComment(id) {
+    if (!confirm('Delete this comment?')) return;
+    const author = localStorage.getItem('tinpact_name') || '';
+    await fetch(`/api/comments/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author, key: isAdmin ? 'fishtins' : '' })
+    });
+    await loadComments(currentEntryId);
+  }
+
+  async function castVote(commentId, value) {
+    const voter = localStorage.getItem('tinpact_name') || '';
+    if (!voter) { showCommentMsg('Enter your name in the Log a Tin form first!', 'error'); return; }
+    await fetch('/api/votes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment_id: commentId, voter, value })
+    });
+    await loadComments(currentEntryId);
+  }
+
+  function showCommentMsg(text, type) {
+    const el = document.getElementById('comment-msg');
+    el.textContent = text;
+    el.style.display = 'block';
+    el.style.color = type === 'error' ? 'var(--rust)' : '#2e7d32';
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
+
+  // Close detail modal on overlay click
+  document.getElementById('detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDetailModal();
+  });
 
   function renderStats() {
     if (!appData || !appData.entries) return;
