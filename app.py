@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import os
 import uuid
 from datetime import datetime
+import zoneinfo
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -23,19 +24,21 @@ CLOUDINARY_SECRET = os.environ.get('CLOUDINARY_SECRET', '')
 
 def supabase_request(method, path, data=None):
     url = f"{SUPABASE_URL}/rest/v1/{path}"
+    prefer = 'return=minimal' if method == 'PATCH' else 'return=representation'
     headers = {
         'apikey': SUPABASE_KEY,
         'Authorization': f'Bearer {SUPABASE_KEY}',
         'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
+        'Prefer': prefer
     }
     body = jsonlib.dumps(data).encode() if data else None
     req = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req) as resp:
-            return jsonlib.loads(resp.read())
+            raw = resp.read()
+            return jsonlib.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
-        print(f"Supabase error: {e.read()}")
+        print(f"Supabase error {method} {path}: {e.read()}")
         return None
 
 def upload_to_cloudinary(file_bytes, public_id):
@@ -91,7 +94,7 @@ def get_data():
 def add_entry():
     name = request.form.get('name', '').strip()
     tins = request.form.get('tins', '0')
-    date = request.form.get('date', datetime.now().strftime('%Y-%m-%d'))
+    date = request.form.get('date', datetime.now(zoneinfo.ZoneInfo('America/New_York')).strftime('%Y-%m-%d'))
     note = request.form.get('note', '').strip()
     tin_type = request.form.get('tin_type', '').strip()
 
