@@ -177,7 +177,7 @@ def get_comments(entry_id):
     comments = supabase_request('GET', f"comments?entry_id=eq.{entry_id}&select=*&order=timestamp.asc")
     if comments is None:
         comments = []
-    votes = supabase_request('GET', f"votes?comment_id=in.({','.join([c['id'] for c in comments]) if comments else 'null'}}&select=*")
+    votes = supabase_request('GET', f"votes?comment_id=in.({','.join([c['id'] for c in comments]) if comments else 'null'})&select=*")
     if votes is None:
         votes = []
     return jsonify({"comments": comments, "votes": votes})
