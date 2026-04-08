@@ -515,6 +515,45 @@
   #lightbox-close:hover { opacity: 1; }
   .entry-img-wrap img { cursor: zoom-in; }
 
+  /* MILESTONE ANIMATIONS */
+  #anim-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 997;
+    pointer-events: none;
+    display: none;
+  }
+  #anim-overlay.active { display: block; pointer-events: all; }
+  #anim-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #anim-msg {
+    position: absolute;
+    bottom: calc(var(--nav-h) + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0a1a22;
+    border: 3px solid #c9962b;
+    color: #f5f0e8;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    white-space: nowrap;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+  #anim-tap {
+    position: absolute;
+    bottom: calc(var(--nav-h) + 70px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: rgba(245,240,232,0.5);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: fadePulse 1.5s ease-in-out infinite;
+  }
+  @keyframes fadePulse { 0%,100%{opacity:0.3} 50%{opacity:0.8} }
+
   /* REACTIONS */
   .reaction-bar {
     display: flex;
@@ -1052,16 +1091,12 @@
   <div class="splash-subtitle">Tin Pact Update</div>
   <div class="splash-items">
     <div class="splash-item">
-      <span class="splash-item-icon">💬</span>
-      <div class="splash-item-text"><strong>Comments</strong> — tap any tin log to open it, leave a comment, and react with 👍 or 👎</div>
+      <span class="splash-item-icon">🥫</span>
+      <div class="splash-item-text"><strong>Canned tuna clause</strong> — someone tried to log a canned tuna. you know who you are. we've added a special option just for you.</div>
     </div>
     <div class="splash-item">
-      <span class="splash-item-icon">📸</span>
-      <div class="splash-item-text"><strong>Photo viewer</strong> — tap any photo to enlarge it</div>
-    </div>
-    <div class="splash-item">
-      <span class="splash-item-icon">📊</span>
-      <div class="splash-item-text"><strong>Stats page</strong> — track progress, leaderboard, tins by type, and your April pace</div>
+      <span class="splash-item-icon">⚠️</span>
+      <div class="splash-item-text"><strong>Something has been activated.</strong> keep eating tins and you'll find out what.</div>
     </div>
   </div>
   <button class="splash-btn" onclick="dismissSplash()">Let's go 🐟</button>
@@ -1434,6 +1469,11 @@
     renderEntries();
     renderStats();
     if (!sinceBannerChecked) { checkSinceBanner(); sinceBannerChecked = true; }
+    // Milestone checks
+    const _myName = localStorage.getItem('tinpact_name') || '';
+    const _total = appData.entries.reduce((s,e) => s + e.tins, 0);
+    if (_myName) checkIndividualMilestone(_myName, appData.entries);
+    checkCollectiveMilestone(_total);
   }
 
   function renderLeaderboard() {
@@ -1530,6 +1570,7 @@
         document.getElementById('f-image').value = '';
         document.getElementById('preview-img').style.display = 'none';
         await loadData();
+        // Individual milestone check fires after data reloads (handled in renderAll)
         setTimeout(() => showPage('chronicle'), 900);
       } else {
         showMsg(data.error || 'Something went wrong.', 'error');
@@ -1638,7 +1679,7 @@
   }
 
   // Splash screen - version key controls who sees it
-  const SPLASH_VERSION = 'v3';
+  const SPLASH_VERSION = 'v4';
   function dismissSplash() {
     const el = document.getElementById('splash');
     el.classList.add('hiding');
@@ -2055,6 +2096,171 @@
     }
   });
 
+
+  // ── MILESTONE ANIMATION ENGINE ──
+  (function(){
+    const FISH=[[0,0,1,1,1,0,0,1],[0,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1],[0,0,1,1,1,0,0,1]];
+    const TIN=[[1,1,1,1,1,1],[1,0,0,0,0,1],[1,0,1,1,0,1],[1,0,0,0,0,1],[1,1,1,1,1,1],[0,1,1,1,1,0]];
+    const SKULL=[[0,1,1,1,1,0],[1,1,1,1,1,1],[1,0,1,1,0,1],[1,1,1,1,1,1],[0,1,0,1,0,1],[0,1,1,1,1,0]];
+    const CROWN=[[0,1,0,1,0,1,0],[1,1,1,1,1,1,1],[1,1,1,1,1,1,1],[0,1,1,1,1,1,0]];
+    const TROPHY=[[0,1,1,1,1,0],[1,1,1,1,1,1],[0,1,1,1,1,0],[0,0,1,1,0,0],[0,1,1,1,1,0],[1,1,1,1,1,1]];
+    const COLS=['#c9962b','#f5f0e8','#c0392b','#2ecc71','#3498db','#e74c3c','#9b59b6','#1abc9c','#f39c12'];
+    const IND_COL='#5dcaa5', COL_COL='#c9962b';
+
+    let cvs,ctx,W,H,raf,parts=[],frame=0,shk=0,animDef=null;
+
+    function init(){
+      cvs=document.getElementById('anim-canvas');
+      ctx=cvs.getContext('2d');
+      window.addEventListener('resize',resize);
+      resize();
+    }
+    function resize(){
+      if(!cvs)return;
+      W=cvs.width=window.innerWidth;
+      H=cvs.height=window.innerHeight;
+    }
+
+    function spr(px,x,y,s,col){ctx.fillStyle=col;px.forEach((r,ry)=>r.forEach((v,rx)=>{if(v)ctx.fillRect(~~(x+rx*s),~~(y+ry*s),s,s);}));}
+    function conf(x,y,n){for(let i=0;i<n;i++)parts.push({k:'c',x,y,vx:(Math.random()-0.5)*12,vy:-(Math.random()*14+4),col:COLS[~~(Math.random()*COLS.length)],w:~~(Math.random()*7)+3,h:~~(Math.random()*4)+2,rot:Math.random()*Math.PI,rv:(Math.random()-0.5)*0.5,life:1});}
+    function fish(x,y,vx,vy,col,s){return{k:'f',x,y,vx,vy,col:col||IND_COL,s:s||4,life:1};}
+    function tin(x,y,vx,vy){return{k:'t',x,y,vx,vy,col:COL_COL,s:4,life:1,rot:0};}
+    function spark(x,y,vx,vy,col){return{k:'sp',x,y,vx,vy,col,s:~~(Math.random()*4)+2,life:1};}
+    function txt(x,y,t,col,vy,fs){return{k:'tx',x,y,vx:0,vy:vy||-1.2,t,col,fs:fs||16,life:1};}
+    function fire(x,y){return{k:'fi',x,y,vx:(Math.random()-0.5)*3,vy:-(Math.random()*7+3),col:Math.random()<0.5?'#c0392b':'#c9962b',s:~~(Math.random()*6)+3,life:1};}
+    function skull(x,y,vx){return{k:'sk',x,y,vx:vx||4,vy:0,col:'#f5f0e8',s:4,life:1,rot:0,rv:(Math.random()-0.5)*0.15};}
+    function boom(x,y,col){return{k:'bm',x,y,col:col||COL_COL,s:6,life:1,age:0};}
+    function sprs(px,x,y,vy,col,s){return{k:'spr',px,x,y,vx:0,vy,col,s,life:1,settled:false,rot:0,rv:(Math.random()-0.5)*0.1};}
+
+    const IND_DEFS={
+      5:{msg:'5 TINS! NOT BAD... FOR A BEGINNER.',
+        init(){shk=4;for(let i=0;i<8;i++)parts.push(fish(-20-i*30,H*0.4+Math.sin(i)*30,3,Math.sin(i)*0.5,IND_COL,4));parts.push(txt(W/2,H/2-40,'5 TINS!',IND_COL,-2,28));parts.push(txt(W/2,H/2,'not bad... for a beginner','#f5f0e8',-1,16));conf(W/2,H/2,12);},
+        update(){if(frame%12===0&&frame<120)parts.push(fish(-20,H*0.3+Math.random()*H*0.4,3+Math.random(),(Math.random()-0.5)*0.5,IND_COL,4));}},
+      10:{msg:'10 TINS! DOUBLE DIGITS, FISH DESTROYER!',
+        init(){shk=8;for(let i=0;i<20;i++)parts.push(fish(Math.random()*W,-20-Math.random()*150,(Math.random()-0.5)*2,Math.random()*4+2,IND_COL,4));parts.push(txt(W/2,H/2-50,'10 TINS!',IND_COL,-2.5,32));parts.push(txt(W/2,H/2-10,'DOUBLE DIGITS, FISH DESTROYER','#f5f0e8',-1.2,15));conf(W/2,H/2,25);},
+        update(){if(frame%5===0&&frame<130)parts.push(fish(Math.random()*W,-10,(Math.random()-0.5)*2,Math.random()*3+2,IND_COL,4));}},
+      15:{msg:'15 TINS! THE SARDINES ARE NERVOUS!',
+        init(){shk=11;parts.push(sprs(TROPHY,W/2-24,-40,5,'#c9962b',4));for(let a=0;a<14;a++){const ang=(a/14)*Math.PI*2;parts.push(fish(W/2,H/2,Math.cos(ang)*8,Math.sin(ang)*8-3,IND_COL,5));}parts.push(txt(W/2,H/2-55,'15 TINS',IND_COL,-2.5,30));parts.push(txt(W/2,H/2-15,'THE SARDINES FILE A COMPLAINT','#f5f0e8',-1.2,14));conf(W/2,H/2,30);},
+        update(){if(frame%8===0&&frame<150)parts.push(tin(Math.random()*W,-10,(Math.random()-0.5)*3,Math.random()*3+2));}},
+      20:{msg:'20 TINS! CERTIFIED TIN MENACE!',
+        init(){shk=16;for(let i=0;i<3;i++)parts.push(boom(W*[0.25,0.5,0.75][i],H/2,'#c0392b'));for(let a=0;a<18;a++){const ang=(a/18)*Math.PI*2;parts.push(tin(W/2,H/2,Math.cos(ang)*9,Math.sin(ang)*9-4));}parts.push(txt(W/2,H/2-60,'20 TINS',IND_COL,-3,34));parts.push(txt(W/2,H/2-20,'CERTIFIED TIN MENACE','#f5f0e8',-1.5,15));conf(W/2,H/2,40);},
+        update(){if(frame<160&&frame%3===0)[20,W-20].forEach(x=>parts.push(fire(x+(Math.random()-0.5)*20,H)));if(frame%10===0&&frame<130)parts.push(fish(Math.random()*W,H+10,(Math.random()-0.5)*4,-(Math.random()*5+4),'#e74c3c',5));}},
+      25:{msg:'25 TINS! THE OCEAN TREMBLES!',
+        init(){shk=20;for(let i=0;i<6;i++)parts.push(boom(Math.random()*W,Math.random()*H*0.6));for(let i=0;i<10;i++)parts.push(skull(-60-i*70,H*0.55+Math.sin(i)*20,5));for(let a=0;a<24;a++){const ang=(a/24)*Math.PI*2;parts.push(spark(W/2,H/2,Math.cos(ang)*10,Math.sin(ang)*10-3,'#c9962b'));}conf(W/2,H/2,50);parts.push(txt(W/2,H/2-65,'25 TINS!!!',IND_COL,-3,36));parts.push(txt(W/2,H/2-25,'THE OCEAN TREMBLES BEFORE YOU','#f5f0e8',-1.8,14));parts.push(txt(W/2,H/2+5,'FISH ARE SCARED','#c0392b',-1,13));},
+        update(){if(frame<180&&frame%4===0)parts.push(skull(-60,H*0.4+Math.sin(frame*0.15)*40,4+Math.random()*2));if(frame<200&&frame%3===0)[10,W*0.3,W*0.7,W-10].forEach(x=>parts.push(fire(x+(Math.random()-0.5)*20,H)));if(frame%15===0&&frame<180){const cx=Math.random()*W;for(let a=0;a<16;a++){const ang=(a/16)*Math.PI*2;parts.push(spark(cx,Math.random()*H*0.5,Math.cos(ang)*7,Math.sin(ang)*7,COLS[~~(Math.random()*COLS.length)]));}conf(cx,Math.random()*H*0.5,10);}}},
+      30:{msg:'30 TINS — ARE YOU EVEN HUMAN?!',
+        init(){shk=28;for(let i=0;i<12;i++)parts.push(boom(Math.random()*W,Math.random()*H));for(let a=0;a<28;a++){const ang=(a/28)*Math.PI*2;parts.push(fish(W/2,H/2,Math.cos(ang)*13,Math.sin(ang)*13-4,IND_COL,6));}for(let i=0;i<14;i++)parts.push(skull(-60-i*60,H*0.5+Math.sin(i)*30,6+i*0.2));conf(W/2,H/2,80);parts.push(txt(W/2,H/2-75,'30 TINS',IND_COL,-4,40));parts.push(txt(W/2,H/2-32,'ARE YOU EVEN HUMAN?!','#f5f0e8',-2.5,16));parts.push(txt(W/2,H/2+0,'FISH HAVE UNIONIZED','#c0392b',-1.5,14));parts.push(txt(W/2,H/2+25,'AGAINST YOU SPECIFICALLY','#c9962b',-1,12));},
+        update(){if(frame<250&&frame%2===0)[10,W*0.25,W*0.5,W*0.75,W-10].forEach(x=>parts.push(fire(x+(Math.random()-0.5)*25,H)));if(frame%3===0&&frame<200)parts.push(skull(-60,H*0.35+Math.sin(frame*0.2)*50,5+Math.random()*4));if(frame%4===0&&frame<220)conf(Math.random()*W,-5,2);if(frame%8===0&&frame<200){const cx=Math.random()*W;for(let a=0;a<22;a++){const ang=(a/22)*Math.PI*2;parts.push(spark(cx,Math.random()*H*0.5,Math.cos(ang)*10,Math.sin(ang)*10,COLS[~~(Math.random()*COLS.length)]));}conf(cx,Math.random()*H*0.5,15);}if([25,50,75,100].includes(frame)){shk=22;for(let i=0;i<4;i++)parts.push(boom(Math.random()*W,Math.random()*H*0.7));}}}
+    };
+
+    function mkCol(n){
+      const intensity=n/200;
+      return {
+        msg: {10:'10 TINS AS A GROUP! IT BEGINS!',20:'20 TINS! THE PACT IS REAL!',30:'30 TINS! COMMITTED TO THE BIT!',40:'40 TINS! HALFWAY TO HALFWAY!',50:'50 TINS! THE OCEAN SHIVERS!',60:'60 TINS! THE LEADERBOARD SWEATS!',70:'70 TINS! PAST THE POINT OF NO RETURN!',80:'80 TINS! THE FISH HAVE A SUPPORT GROUP!',90:'90 TINS! SO CLOSE TO 100!',100:'100 TINS! THE TIN CENTENARY!',110:'110 TINS! PAST THE CENTURY!',120:'120 TINS! APPROACHING DANGEROUS LEVELS!',130:'130 TINS! ENVIRONMENTAL CONCERNS!',140:'140 TINS! OCEANS: CRITICALLY DEPLETED!',150:'150 TINS! THREE QUARTERS TO GLORY!',160:'160 TINS! THE FISH HAVE LEFT THE BUILDING!',170:'170 TINS! 30 FROM LEGEND STATUS!',180:'180 TINS! THE END IS NEAR (FOR THE FISH)!',190:'190 TINS! ONE LAST PUSH!!!',200:'GOAL ACHIEVED \u2014 200 TINS! \u2620\uFE0F'}[n]||`${n} TINS!`,
+        init(){
+          shk=~~(intensity*35)+4;
+          for(let i=0;i<~~(intensity*10)+1;i++)parts.push(boom(Math.random()*W,Math.random()*H*0.7,COL_COL));
+          if(n>=50){const nf=~~(intensity*28)+4;for(let a=0;a<nf;a++){const ang=(a/nf)*Math.PI*2;parts.push(fish(W/2,H/2,Math.cos(ang)*(6+intensity*8),Math.sin(ang)*(6+intensity*8)-3,n>=100?'#c0392b':IND_COL,4+~~(intensity*3)));}}
+          conf(W/2,H/2,~~(intensity*60)+10);
+          if(n>=40){for(let i=0;i<~~(intensity*14)+2;i++)parts.push(skull(-60-i*65,H*0.5+Math.sin(i)*25,4+intensity*3));}
+          parts.push(txt(W/2,H/2-60,`${n} TINS!`,COL_COL,-2.5-intensity,28+~~(intensity*14)));
+          const pool=n>=200?['THE FISH HAVE FILED FOR BANKRUPTCY','OCEAN: DEPLETED. GOAL: ACHIEVED.','FISH POPULATION: CRITICALLY LOW']:n>=100?['TIN ROYALTY REIGNS','BOW BEFORE THE TIN SOVEREIGN','THE CENTURY IS YOURS']:['KEEP EATING','THE PACT HOLDS','MORE TINS. ALWAYS MORE TINS.'];
+          parts.push(txt(W/2,H/2-20,pool[~~(Math.random()*pool.length)],'#f5f0e8',-1.2,13+~~(intensity*3)));
+          if(n===200){parts.push(txt(W/2,H/2+10,'THE OCEAN HAS FILED A COMPLAINT','#c0392b',-1,12));parts.push(sprs(CROWN,W/2-28,-40,5,COL_COL,5));}
+          if(n===150)parts.push(sprs(TROPHY,W/2-24,-40,5,COL_COL,5));
+          if(n===100)parts.push(sprs(CROWN,W/2-28,-40,5,COL_COL,6));
+        },
+        update(){
+          const intensity=n/200;
+          if(frame<200&&frame%Math.max(1,4-~~(intensity*3))===0){const xs=n>=100?[10,W*0.25,W*0.5,W*0.75,W-10]:[W/2];xs.forEach(x=>parts.push(fire(x+(Math.random()-0.5)*30,H)));}
+          if(frame%Math.max(3,10-~~(intensity*6))===0&&frame<180)parts.push(skull(-60,H*0.4+Math.sin(frame*0.18)*45,3+intensity*5));
+          if(frame%Math.max(5,15-~~(intensity*10))===0&&frame<200){const cx=Math.random()*W;const na=~~(intensity*20)+8;for(let a=0;a<na;a++){const ang=(a/na)*Math.PI*2;parts.push(spark(cx,Math.random()*H*0.5,Math.cos(ang)*(5+intensity*6),Math.sin(ang)*(5+intensity*6),COLS[~~(Math.random()*COLS.length)]));}conf(cx,Math.random()*H*0.5,~~(intensity*15)+3);}
+          if(n>=60&&frame%4===0&&frame<220)conf(Math.random()*W,-5,~~(intensity*3)+1);
+          if(n>=80&&[30,60,90,120].includes(frame)){shk=~~(intensity*20)+5;for(let i=0;i<~~(intensity*4)+1;i++)parts.push(boom(Math.random()*W,Math.random()*H*0.7));}
+        }
+      };
+    }
+
+    function playAnim(def){
+      cancelAnimationFrame(raf); parts=[]; frame=0; shk=0; animDef=def;
+      const overlay=document.getElementById('anim-overlay');
+      const msgEl=document.getElementById('anim-msg');
+      overlay.style.background='rgba(6,13,17,0.88)';
+      overlay.classList.add('active');
+      msgEl.textContent=def.msg;
+      resize();
+      def.init();
+      loop();
+    }
+
+    function loop(){
+      if(shk>0){ctx.save();ctx.translate((Math.random()-0.5)*shk,(Math.random()-0.5)*shk);shk*=0.87;if(shk<0.5)shk=0;}
+      ctx.clearRect(-80,-80,W+160,H+160);
+      for(let y=0;y<H;y+=4){ctx.fillStyle='rgba(0,0,0,0.18)';ctx.fillRect(-80,y,W+160,2);}
+      if(animDef&&animDef.update)animDef.update();
+      parts=parts.filter(p=>p.life>0);
+      parts.forEach(p=>{
+        p.x+=p.vx;p.y+=p.vy;
+        if(p.k==='c'){p.vy+=0.28;p.rot+=p.rv;p.life-=0.004;if(p.y>H+20)p.life=0;ctx.save();ctx.translate(~~p.x,~~p.y);ctx.rotate(p.rot);ctx.fillStyle=p.col;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}
+        else if(p.k==='f'){p.vy+=0.1;if(p.y>H+30||p.x<-80||p.x>W+80)p.life=0;spr(FISH,p.x,p.y,p.s,p.col);}
+        else if(p.k==='t'){p.vy+=0.16;p.rot+=0.18;if(p.y>H+20)p.life=0;ctx.save();ctx.translate(~~p.x,~~p.y);ctx.rotate(p.rot);spr(TIN,-p.s*3,-p.s*3,p.s,p.col);ctx.restore();}
+        else if(p.k==='sp'){p.vy+=0.14;p.life-=0.018;ctx.fillStyle=p.col;ctx.fillRect(~~p.x,~~p.y,p.s,p.s);}
+        else if(p.k==='fi'){p.vy+=0.06;p.life-=0.028;if(p.y<-10||p.life<=0){p.life=0;return;}ctx.globalAlpha=p.life;ctx.fillStyle=p.col;ctx.fillRect(~~p.x,~~p.y,p.s,p.s);ctx.globalAlpha=1;}
+        else if(p.k==='sk'){p.rot+=p.rv;if(p.x>W+90)p.life=0;ctx.save();ctx.translate(~~p.x,~~p.y);ctx.rotate(p.rot);spr(SKULL,-p.s*3,-p.s*3,p.s,p.col);ctx.restore();}
+        else if(p.k==='bm'){p.age++;p.life-=0.055;if(p.life<=0)return;const r=p.age*p.s;ctx.globalAlpha=p.life;ctx.strokeStyle=p.col;ctx.lineWidth=3;ctx.beginPath();ctx.arc(~~p.x,~~p.y,r,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=0.35*p.life;ctx.fillStyle=p.col;ctx.fill();ctx.globalAlpha=1;}
+        else if(p.k==='spr'){if(!p.settled&&p.y>=H/2-60){p.settled=true;p.vy=0;}p.rot+=p.rv;ctx.save();ctx.translate(~~p.x,~~p.y);ctx.rotate(p.rot);spr(p.px,-p.s*3.5,-p.s*2,p.s,p.col);ctx.restore();}
+        else if(p.k==='tx'){p.life-=0.0038;if(p.life<=0)return;ctx.globalAlpha=Math.min(1,p.life*4);ctx.fillStyle=p.col;ctx.font=`bold ${p.fs}px 'Courier New',monospace`;ctx.textAlign='center';ctx.fillText(p.t,~~p.x,~~p.y);ctx.globalAlpha=1;}
+      });
+      if(shk>0)ctx.restore();
+      frame++;
+      if(frame<350)raf=requestAnimationFrame(loop);
+      else closeAnim();
+    }
+
+    window.closeAnim=function(){
+      cancelAnimationFrame(raf);
+      ctx.clearRect(0,0,W,H);
+      document.getElementById('anim-overlay').classList.remove('active');
+      animDef=null; parts=[]; frame=0;
+    };
+
+    // Check individual milestone
+    window.checkIndividualMilestone=function(myName, allEntries){
+      const myTins=allEntries.filter(e=>e.name.toLowerCase()===myName.toLowerCase()).reduce((s,e)=>s+e.tins,0);
+      const milestones=[5,10,15,20,25,30];
+      const seenKey='tinpact_ind_milestones';
+      let seen=JSON.parse(localStorage.getItem(seenKey)||'[]');
+      for(let i=milestones.length-1;i>=0;i--){
+        const m=milestones[i];
+        if(myTins>=m&&!seen.includes(m)){
+          seen.push(m);
+          localStorage.setItem(seenKey,JSON.stringify(seen));
+          const def=IND_DEFS[m]||IND_DEFS[30];
+          setTimeout(()=>playAnim(def),500);
+          return;
+        }
+      }
+    };
+
+    // Check collective milestone
+    window.checkCollectiveMilestone=function(total){
+      const milestones=[10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200];
+      const seenKey='tinpact_col_milestones';
+      let seen=JSON.parse(localStorage.getItem(seenKey)||'[]');
+      for(let i=milestones.length-1;i>=0;i--){
+        const m=milestones[i];
+        if(total>=m&&!seen.includes(m)){
+          seen.push(m);
+          localStorage.setItem(seenKey,JSON.stringify(seen));
+          setTimeout(()=>playAnim(mkCol(m)),800);
+          return;
+        }
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded',init);
+  })();
+
   function renderStats() {
     if (!appData || !appData.entries) return;
     const entries = appData.entries;
@@ -2244,6 +2450,14 @@
   <button onclick="castReaction('👑')">👑</button>
   <button onclick="castReaction('🤢')">🤢</button>
   <button onclick="castReaction('👏')">👏</button>
+</div>
+
+
+<!-- MILESTONE ANIMATION OVERLAY -->
+<div id="anim-overlay" onclick="closeAnim()">
+  <canvas id="anim-canvas"></canvas>
+  <div id="anim-msg"></div>
+  <div id="anim-tap">tap to dismiss</div>
 </div>
 
 <!-- Audio -->
