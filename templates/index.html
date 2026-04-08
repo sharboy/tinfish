@@ -12,6 +12,9 @@
 <meta name="apple-mobile-web-app-title" content="Tin Pact">
 <link rel="apple-touch-icon" href="/static/icon-180.png">
 <meta name="theme-color" content="#1a3a4a">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1060,10 +1063,6 @@
       <span class="splash-item-icon">📊</span>
       <div class="splash-item-text"><strong>Stats page</strong> — track progress, leaderboard, tins by type, and your April pace</div>
     </div>
-    <div class="splash-item">
-      <span class="splash-item-icon">🥚</span>
-      <div class="splash-item-text"><strong>Easter egg</strong> — something's hiding in the app. find it.</div>
-    </div>
   </div>
   <button class="splash-btn" onclick="dismissSplash()">Let's go 🐟</button>
 </div>
@@ -1150,6 +1149,7 @@
               <option>Squid</option>
               <option>Tuna</option>
               <option value="__other__">Other…</option>
+              <option value="whoops">🫣 Whoops, ate canned instead</option>
             </select>
             <input type="text" id="f-type-custom" placeholder="Type of tin" style="display:none;margin-top:0.5rem">
           </div>
@@ -1281,6 +1281,7 @@
           <option>Squid</option>
           <option>Tuna</option>
           <option value="__other__">Other…</option>
+          <option value="whoops">🫣 Whoops, ate canned instead</option>
         </select>
         <input type="text" id="edit-type-custom" placeholder="Type of tin" style="display:none;margin-top:0.5rem">
       </div>
@@ -1637,7 +1638,7 @@
   }
 
   // Splash screen - version key controls who sees it
-  const SPLASH_VERSION = 'v2';
+  const SPLASH_VERSION = 'v3';
   function dismissSplash() {
     const el = document.getElementById('splash');
     el.classList.add('hiding');
@@ -2245,7 +2246,7 @@
   <button onclick="castReaction('👏')">👏</button>
 </div>
 
-<!-- Easter egg audio -->
+<!-- Audio -->
 <audio id="bg-music" loop>
   <source src="https://res.cloudinary.com/dsoacvo9g/video/upload/v1775519117/TENTEN_aemhpd.mp3" type="audio/mpeg">
 </audio>

@@ -31,6 +31,7 @@ TWILIO_RECIPIENTS = [
     '+15859054719',
     '+16036301144',
     '+12153014768',
+    '+12074007342',
 ]
 
 def supabase_request(method, path, data=None):
