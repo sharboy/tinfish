@@ -2213,8 +2213,12 @@
       });
       if(shk>0)ctx.restore();
       frame++;
-      if(frame<350)raf=requestAnimationFrame(loop);
-      else closeAnim();
+      // Keep looping indefinitely until user taps to dismiss
+      if(frame>=350){
+        // After initial burst, keep firing ambient particles
+        frame=200;
+      }
+      raf=requestAnimationFrame(loop);
     }
 
     window.closeAnim=function(){
