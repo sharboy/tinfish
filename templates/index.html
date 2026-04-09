@@ -1111,7 +1111,6 @@
   }
 </style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="f76210a0-a6f5-4231-9a99-46e2f5729d59"></script>
-<script defer src="https://cloud.umami.is/script.js" data-website-id="f76210a0-a6f5-4231-9a99-46e2f5729d59"></script>
 </head>
 <body>
 
@@ -1443,7 +1442,10 @@
 
   // Restore saved name
   const savedName = localStorage.getItem('tinpact_name');
-  if (savedName) document.getElementById('f-name').value = savedName;
+  if (savedName) {
+    document.getElementById('f-name').value = savedName;
+    if (typeof umami !== 'undefined') umami.identify({ name: savedName });
+  }
 
   // Admin check via secret URL key
   const urlParams = new URLSearchParams(window.location.search);
@@ -1660,6 +1662,7 @@
       const data = await res.json();
       if (data.success) {
         localStorage.setItem('tinpact_name', name);
+        if (typeof umami !== 'undefined') umami.identify({ name });
         showMsg('Tin logged! 🐟', 'success');
         document.getElementById('f-tins').value = '1';
         document.getElementById('f-note').value = '';
