@@ -1111,6 +1111,7 @@
   }
 </style>
 <script defer src="https://cloud.umami.is/script.js" data-website-id="f76210a0-a6f5-4231-9a99-46e2f5729d59"></script>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="f76210a0-a6f5-4231-9a99-46e2f5729d59"></script>
 </head>
 <body>
 
@@ -1133,6 +1134,13 @@
   <button class="splash-btn" onclick="dismissSplash()">Let's go 🐟</button>
 </div>
 
+
+<!-- 10 DAY ANNIVERSARY POPUP -->
+<div id="anniversary-overlay" style="display:none;position:fixed;inset:0;z-index:996;background:#000;overflow:hidden;cursor:pointer" onclick="closeAnniversary()">
+  <canvas id="ann-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+  <div id="ann-tap" style="position:absolute;bottom:16px;width:100%;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(245,240,232,0.35);letter-spacing:0.12em;text-transform:uppercase">tap to dismiss</div>
+</div>
+
 <!-- PASSWORD GATE -->
 <div id="password-gate">
   <h2>🐟 Tin Pact</h2>
@@ -1143,8 +1151,9 @@
 </div>
 
 <header>
-  <h1><span id="fish-btn" onclick="toggleMusic()" style="cursor:pointer;user-select:none;-webkit-user-select:none">🐟</span> Tin Pact</h1>
+  <h1>Tin Pact</h1>
   <p>A Collective Tinned Fish Tracker</p>
+  <span id="fish-btn" onclick="toggleMusic()" style="position:absolute;bottom:8px;right:12px;cursor:pointer;user-select:none;-webkit-user-select:none;font-size:1.2rem;z-index:10;opacity:0.6">🐟</span>
 </header>
 
 <!-- SINCE YOU WERE GONE BANNER -->
@@ -1442,10 +1451,7 @@
 
   // Restore saved name
   const savedName = localStorage.getItem('tinpact_name');
-  if (savedName) {
-    document.getElementById('f-name').value = savedName;
-    if (typeof umami !== 'undefined') umami.identify({ name: savedName });
-  }
+  if (savedName) document.getElementById('f-name').value = savedName;
 
   // Admin check via secret URL key
   const urlParams = new URLSearchParams(window.location.search);
@@ -1662,7 +1668,6 @@
       const data = await res.json();
       if (data.success) {
         localStorage.setItem('tinpact_name', name);
-        if (typeof umami !== 'undefined') umami.identify({ name });
         showMsg('Tin logged! 🐟', 'success');
         document.getElementById('f-tins').value = '1';
         document.getElementById('f-note').value = '';
@@ -2201,6 +2206,197 @@
     }
   });
 
+
+
+  // ── 10 DAY ANNIVERSARY POPUP ──
+  (function(){
+    const ANN_KEY = 'tinpact_10day_seen';
+    const ANN_DATE = '2026-04-10';
+
+    function getTodayEST2() {
+      const now = new Date();
+      const est = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const y = est.getFullYear();
+      const m = String(est.getMonth()+1).padStart(2,'0');
+      const d = String(est.getDate()).padStart(2,'0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function shouldShow() {
+      if (localStorage.getItem(ANN_KEY)) return false;
+      return getTodayEST2() >= ANN_DATE;
+    }
+
+    if (!shouldShow()) return;
+
+    const overlay = document.getElementById('anniversary-overlay');
+    const canvas = document.getElementById('ann-canvas');
+    const ctx2 = canvas.getContext('2d');
+    let W2, H2, fr2 = 0, raf2, parts2 = [], sparks2 = [], shk2 = 0;
+    let chargeLevel2 = 0, blastActive2 = false, blastProg2 = 0, blastX2, blastY2;
+    let persState2 = 'stand';
+
+    const T2 = {
+      INTRO_END: 480, BATTLE_START: 900, CHARGE_START: 960,
+      CHARGE_END: 1380, BLAST: 1380, BLAST_DONE: 1680,
+      GETUP: 1900, STAREDOWN: 2200, FADE: 2500
+    };
+
+    const aud2 = new Audio('https://res.cloudinary.com/dsoacvo9g/video/upload/v1775776658/hardstyle_uapzgq.mp4');
+    aud2.loop = true;
+
+    function r2(){W2=canvas.width=overlay.clientWidth;H2=canvas.height=overlay.clientHeight;}
+
+    const SARD2=[[0,0,1,1,1,0,0,1],[0,1,2,1,1,1,1,1],[1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1],[0,0,1,1,1,1,0,1]];
+    const PS=[[0,0,1,1,1,0,0],[0,0,0,1,0,0,0],[0,1,1,1,1,1,0],[0,0,1,1,1,0,0],[0,1,0,0,0,1,0],[0,1,0,0,0,1,0]];
+    const PH=[[0,0,1,1,1,0,0],[0,1,0,0,0,0,0],[0,0,1,1,1,1,1],[0,0,0,1,0,1,0],[0,0,1,0,0,0,1],[0,1,0,0,0,0,0]];
+    const PG=[[0,0,1,1,1,0,0],[0,0,0,1,0,0,0],[1,1,1,1,0,0,0],[0,0,1,1,1,0,0],[0,0,1,0,1,0,0],[0,0,1,0,1,0,0]];
+    const EX=[[0,1,0,1,0],[1,0,1,0,1],[0,1,1,1,0],[1,0,1,0,1],[0,1,0,1,0]];
+
+    function sp2(px,x,y,s,cols){px.forEach((r,ry)=>r.forEach((v,rx)=>{if(!v)return;ctx2.fillStyle=Array.isArray(cols)?cols[v-1]:cols;ctx2.fillRect(~~(x+rx*s),~~(y+ry*s),s,s);}));}
+    function conf2(x,y,n,C){C=C||['#c9962b','#5dcaa5','#c0392b','#f5f0e8'];for(let i=0;i<n;i++)parts2.push({x,y,vx:(Math.random()-0.5)*8,vy:-(Math.random()*10+2),col:C[~~(Math.random()*C.length)],w:~~(Math.random()*6)+2,h:~~(Math.random()*4)+2,rot:Math.random()*Math.PI,rv:(Math.random()-0.5)*0.3,life:1});}
+    function sp2k(x,y,n,col){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=Math.random()*7+2;sparks2.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,col,size:~~(Math.random()*4)+2,life:1});}}
+
+    let sX,sY,pX,pY,scrFlash=0,bgFlash=0;
+
+    function startAnn() {
+      r2(); window.addEventListener('resize', r2);
+      sX=W2*0.12; sY=H2*0.42; pX=W2*0.68; pY=H2*0.40;
+      overlay.style.display='block';
+      aud2.play().catch(()=>{});
+      loop2();
+    }
+
+    function loop2() {
+      if(shk2>0){ctx2.save();ctx2.translate((Math.random()-0.5)*shk2,(Math.random()-0.5)*shk2);shk2*=0.9;if(shk2<0.3)shk2=0;}
+      ctx2.clearRect(-60,-60,W2+120,H2+120);
+      ctx2.fillStyle='#060d11';ctx2.fillRect(-60,-60,W2+120,H2+120);
+      for(let y=0;y<H2;y+=3){ctx2.fillStyle='rgba(0,0,0,0.2)';ctx2.fillRect(-60,y,W2+120,1);}
+
+      if(fr2>T2.BATTLE_START && fr2<T2.FADE) drawBattle2();
+      drawUI2();
+
+      parts2=parts2.filter(p=>p.life>0);
+      parts2.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;p.rot+=p.rv;p.life-=0.005;if(p.y>H2+20)p.life=0;ctx2.save();ctx2.translate(~~p.x,~~p.y);ctx2.rotate(p.rot);ctx2.fillStyle=p.col;ctx2.globalAlpha=p.life;ctx2.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx2.globalAlpha=1;ctx2.restore();});
+      sparks2=sparks2.filter(s=>s.life>0);
+      sparks2.forEach(s=>{s.x+=s.vx;s.y+=s.vy;s.vy+=0.12;s.life-=0.018;ctx2.fillStyle=s.col;ctx2.globalAlpha=s.life;ctx2.fillRect(~~s.x,~~s.y,s.size,s.size);ctx2.globalAlpha=1;});
+
+      if(scrFlash>0){ctx2.fillStyle=`rgba(255,220,80,${scrFlash})`;ctx2.fillRect(0,0,W2,H2);scrFlash=Math.max(0,scrFlash-0.06);}
+      if(shk2>0)ctx2.restore();
+      fr2++;
+      raf2=requestAnimationFrame(loop2);
+    }
+
+    function drawUI2() {
+      const fs=Math.min(28,Math.max(16,W2*0.042));
+      const fss=Math.min(13,Math.max(10,W2*0.017));
+
+      if(fr2<T2.BATTLE_START){
+        const fadeOut=fr2>T2.BATTLE_START-90?Math.max(0,1-(fr2-(T2.BATTLE_START-90))/90):1;
+        const op1=Math.min(1,Math.max(0,(fr2-60)/90))*fadeOut;
+        const op2=Math.min(1,Math.max(0,(fr2-240)/90))*fadeOut;
+        const op3=Math.min(1,Math.max(0,(fr2-350)/60))*0.7*fadeOut;
+        if(op1>0){ctx2.globalAlpha=op1;ctx2.fillStyle='#f5f0e8';ctx2.font=`bold ${fs}px 'Courier New',monospace`;ctx2.textAlign='center';ctx2.fillText("YOU'RE NOT WORKING",W2/2,H2*0.38);}
+        if(op2>0){ctx2.globalAlpha=op2;ctx2.fillStyle='#f5f0e8';ctx2.font=`bold ${fs}px 'Courier New',monospace`;ctx2.textAlign='center';ctx2.fillText('HARD ENOUGH.',W2/2,H2*0.38+fs*1.6);}
+        if(op3>0){ctx2.globalAlpha=op3;ctx2.fillStyle='#c9962b';ctx2.font=`bold ${fss}px 'Courier New',monospace`;ctx2.textAlign='center';ctx2.fillText('TEN DAYS OF TIN PACT',W2/2,H2*0.60);}
+        ctx2.globalAlpha=1;
+        if(fr2%18<2){ctx2.fillStyle='rgba(92,202,165,0.05)';for(let i=0;i<3;i++)ctx2.fillRect(0,Math.random()*H2,W2,2);}
+      }
+
+      if(fr2>T2.BATTLE_START && fr2<T2.BATTLE_START+120){
+        const op=Math.min(1,(fr2-T2.BATTLE_START)/60);
+        ctx2.globalAlpha=op;
+        ctx2.fillStyle='#5dcaa5';ctx2.font=`bold 13px 'Courier New',monospace`;ctx2.textAlign='center';
+        ctx2.fillText('SARDINE',sX+28,sY-30);
+        ctx2.fillStyle='#c0392b';ctx2.fillText('VS',W2/2,H2*0.22);
+        ctx2.fillStyle='#f5f0e8';ctx2.fillText('YOU',pX+21,pY-30);
+        ctx2.globalAlpha=1;
+      }
+
+      if(fr2>=T2.CHARGE_START && fr2<T2.BLAST+30){
+        chargeLevel2=Math.min(1,(fr2-T2.CHARGE_START)/(T2.CHARGE_END-T2.CHARGE_START));
+        const power=~~(chargeLevel2*9999);
+        ctx2.fillStyle='#c9962b';ctx2.font=`bold ${Math.min(16,Math.max(11,W2*0.022))}px 'Courier New',monospace`;ctx2.textAlign='left';
+        ctx2.fillText(`POWER: ${power.toLocaleString()}`,sX,sY-40);
+      }
+
+      if(fr2>=T2.BLAST-10 && fr2<T2.BLAST+90){
+        const op=fr2<T2.BLAST+30?Math.min(1,(fr2-T2.BLAST+10)/20):Math.max(0,1-(fr2-T2.BLAST-30)/60);
+        ctx2.globalAlpha=op;ctx2.fillStyle='#f5f0e8';
+        const bfs=Math.min(24,Math.max(14,W2*0.036));
+        ctx2.font=`bold ${bfs}px 'Courier New',monospace`;ctx2.textAlign='center';
+        ctx2.fillText("IT'S OVER 9,000!!",W2/2,H2*0.18);ctx2.globalAlpha=1;
+      }
+
+      if(fr2>T2.FADE){
+        const op=Math.min(1,(fr2-T2.FADE)/40);
+        ctx2.globalAlpha=op;
+        ctx2.fillStyle='#f5f0e8';ctx2.font=`bold ${fs}px 'Courier New',monospace`;ctx2.textAlign='center';
+        ctx2.fillText("YOU'RE NOT WORKING",W2/2,H2*0.38);
+        ctx2.fillText('HARD ENOUGH.',W2/2,H2*0.38+fs*1.7);
+        ctx2.globalAlpha=op*0.7;ctx2.fillStyle='#c9962b';
+        ctx2.font=`bold ${fss}px 'Courier New',monospace`;
+        ctx2.fillText('TEN DAYS OF TIN PACT',W2/2,H2*0.62);ctx2.globalAlpha=1;
+        if(fr2%18<2){ctx2.fillStyle='rgba(92,202,165,0.05)';for(let i=0;i<3;i++)ctx2.fillRect(0,Math.random()*H2,W2,2);}
+      }
+    }
+
+    function drawBattle2(){
+      const px=6;
+      ctx2.fillStyle='#1a3a4a';ctx2.fillRect(0,H2*0.72,W2,4);
+      ctx2.fillStyle='#0d2030';ctx2.fillRect(0,H2*0.724,W2,H2);
+
+      if(fr2>=T2.CHARGE_START){
+        const t=Math.min(1,(fr2-T2.CHARGE_START)/(T2.CHARGE_END-T2.CHARGE_START));
+        for(let i=0;i<12;i++){const a=(fr2*0.015+i*0.52)%(Math.PI*2);const len=50+Math.sin(fr2*0.04+i)*25;ctx2.strokeStyle=`rgba(92,202,165,${0.08+t*0.25})`;ctx2.lineWidth=1.5;ctx2.beginPath();ctx2.moveTo(sX+28,sY+18);ctx2.lineTo(sX+28+Math.cos(a)*len,sY+18+Math.sin(a)*len);ctx2.stroke();}
+        for(let r=1;r<=3;r++){ctx2.strokeStyle=`rgba(92,202,165,${0.15*t/r})`;ctx2.lineWidth=2;ctx2.beginPath();ctx2.arc(sX+28,sY+18,20+r*12+Math.sin(fr2*0.08+r)*4,0,Math.PI*2);ctx2.stroke();}
+        if(fr2%3===0)sp2k(sX+Math.random()*56,sY+Math.random()*36,1,'#5dcaa5');
+        if(fr2%5===0)conf2(sX+Math.random()*56,sY+Math.random()*36,1,['#5dcaa5']);
+        shk2=chargeLevel2*4;
+        ctx2.fillStyle=`rgba(255,255,100,${0.5+Math.sin(fr2*0.15)*0.5})`;
+        ctx2.fillRect(~~(sX+px),~~(sY+px),px,px);
+      }
+
+      sp2(SARD2,sX,sY,px,['#5dcaa5','#3a9a80']);
+
+      const sprite=persState2==='hit'?PH:persState2==='getup'?PG:PS;
+      sp2(sprite,pX,pY,px,'#f5f0e8');
+
+      if(fr2===T2.BLAST){blastActive2=true;blastProg2=0;scrFlash=1;shk2=25;chargeLevel2=1;}
+      if(blastActive2){
+        blastProg2=Math.min(1,(fr2-T2.BLAST)/(T2.BLAST_DONE-T2.BLAST));
+        blastX2=sX+56+(pX-sX-56)*blastProg2; blastY2=sY+18;
+        const bw=Math.max(3,16-blastProg2*12);
+        ctx2.strokeStyle='#5dcaa5';ctx2.lineWidth=bw;ctx2.beginPath();ctx2.moveTo(sX+56,sY+18);ctx2.lineTo(blastX2,blastY2);ctx2.stroke();
+        ctx2.strokeStyle='rgba(255,255,255,0.6)';ctx2.lineWidth=bw*0.4;ctx2.beginPath();ctx2.moveTo(sX+56,sY+18);ctx2.lineTo(blastX2,blastY2);ctx2.stroke();
+        sp2(EX,blastX2-10,blastY2-10,4,'#c9962b');
+        if(fr2%2===0)sp2k(blastX2,blastY2,3,'#5dcaa5');
+        if(blastProg2>=1){blastActive2=false;persState2='hit';shk2=35;scrFlash=1.2;conf2(pX+21,pY+21,60);sp2k(pX+21,pY+21,40,'#c9962b');}
+      }
+      if(fr2>T2.BLAST_DONE && fr2<T2.BLAST_DONE+20){sp2(EX,pX-5,pY-5,10,'#c9962b');if(fr2%3===0)sp2k(pX+21,pY+21,5,'#f5f0e8');}
+      if(fr2===T2.GETUP){persState2='getup';shk2=10;sp2k(pX+21,pY+10,20,'#f5f0e8');}
+      if(fr2>T2.GETUP+60)persState2='stand';
+
+      if(fr2>T2.STAREDOWN && fr2<T2.FADE){
+        const t=(fr2-T2.STAREDOWN)/(T2.FADE-T2.STAREDOWN);
+        const boost=1+t*0.3;
+        ctx2.save();ctx2.translate(sX+28,sY+18);ctx2.scale(boost,boost);ctx2.translate(-28,-18);sp2(SARD2,0,0,px,['#5dcaa5','#3a9a80']);ctx2.restore();
+        ctx2.save();ctx2.translate(pX+21,pY+21);ctx2.scale(boost,boost);ctx2.translate(-21,-21);sp2(PS,0,0,px,'#f5f0e8');ctx2.restore();
+        if(fr2%6<3){ctx2.strokeStyle=`rgba(255,255,255,${0.05+t*0.1})`;ctx2.lineWidth=1;for(let i=0;i<6;i++){const y=H2*0.1+i*(H2*0.12);ctx2.beginPath();ctx2.moveTo(0,y);ctx2.lineTo(W2,y);ctx2.stroke();}}
+        if(fr2%10<2){ctx2.fillStyle='rgba(92,202,165,0.06)';for(let i=0;i<2;i++)ctx2.fillRect(0,Math.random()*H2,W2,3);}
+      }
+      if(fr2>T2.FADE-60){const t=(fr2-(T2.FADE-60))/60;ctx2.fillStyle=`rgba(6,13,17,${Math.min(1,t)})`;ctx2.fillRect(0,0,W2,H2);}
+    }
+
+    window.closeAnniversary = function(){
+      aud2.pause(); aud2.currentTime=0;
+      cancelAnimationFrame(raf2);
+      overlay.style.display='none';
+      localStorage.setItem(ANN_KEY,'1');
+    };
+
+    setTimeout(() => startAnn(), 1000);
+  })();
 
   // ── MILESTONE ANIMATION ENGINE ──
   (function(){
