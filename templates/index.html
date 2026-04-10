@@ -2394,7 +2394,17 @@
       localStorage.setItem(ANN_KEY,'1');
     };
 
-    setTimeout(() => startAnn(), 1000);
+    if (localStorage.getItem('tinpact_auth') === '1') {
+      setTimeout(() => startAnn(), 1000);
+    } else {
+      const _origCP = window.checkPassword;
+      window.checkPassword = function() {
+        _origCP && _origCP();
+        if (localStorage.getItem('tinpact_auth') === '1') {
+          setTimeout(() => startAnn(), 1500);
+        }
+      };
+    }
   })();
 
   // ── MILESTONE ANIMATION ENGINE ──
