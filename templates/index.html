@@ -1136,9 +1136,18 @@
 
 
 <!-- 10 DAY ANNIVERSARY POPUP -->
-<div id="anniversary-overlay" style="display:none;position:fixed;inset:0;z-index:996;background:#000;overflow:hidden;cursor:pointer" onclick="closeAnniversary()">
-  <canvas id="ann-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
-  <div id="ann-tap" style="position:absolute;bottom:16px;width:100%;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(245,240,232,0.35);letter-spacing:0.12em;text-transform:uppercase">tap to dismiss</div>
+<div id="anniversary-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:996;background:#060d11;overflow:hidden">
+  <!-- Start screen -->
+  <div id="ann-start" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center">
+    <div style="font-family:'Courier New',monospace;font-size:clamp(10px,1.8vw,13px);color:#c9962b;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1.5rem">Day 10</div>
+    <div style="font-family:'Courier New',monospace;font-weight:bold;font-size:clamp(22px,5vw,36px);color:#f5f0e8;line-height:1.4;margin-bottom:0.75rem">It's been<br>ten days.</div>
+    <div style="font-family:'Courier New',monospace;font-size:clamp(11px,2vw,15px);color:#5dcaa5;margin-bottom:3rem;letter-spacing:0.05em">We have something to say.</div>
+    <button id="ann-play-btn" style="background:#c9962b;border:none;color:#060d11;font-family:'Courier New',monospace;font-weight:bold;font-size:clamp(13px,2.5vw,16px);padding:1rem 2.5rem;cursor:pointer;letter-spacing:0.1em">PLAY &rarr;</button>
+    <div style="font-family:'Courier New',monospace;font-size:10px;color:rgba(245,240,232,0.3);margin-top:1.5rem;letter-spacing:0.08em">sound on for full experience</div>
+  </div>
+  <!-- Animation canvas -->
+  <canvas id="ann-canvas" style="position:absolute;top:0;left:0;display:none"></canvas>
+  <div id="ann-tap" style="display:none;position:absolute;bottom:16px;width:100%;text-align:center;font-family:'Courier New',monospace;font-size:10px;color:rgba(245,240,232,0.35);letter-spacing:0.12em;text-transform:uppercase">tap to dismiss</div>
 </div>
 
 <!-- PASSWORD GATE -->
@@ -2244,7 +2253,13 @@
     const aud2 = new Audio('https://res.cloudinary.com/dsoacvo9g/video/upload/v1775776658/hardstyle_uapzgq.mp4');
     aud2.loop = true;
 
-    function r2(){W2=canvas.width=overlay.clientWidth;H2=canvas.height=overlay.clientHeight;}
+    function r2(){
+      const rect=overlay.getBoundingClientRect();
+      W2=canvas.width=rect.width||window.innerWidth;
+      H2=canvas.height=rect.height||window.innerHeight;
+      canvas.style.width=W2+'px';
+      canvas.style.height=H2+'px';
+    }
 
     const SARD2=[[0,0,1,1,1,0,0,1],[0,1,2,1,1,1,1,1],[1,1,1,1,1,1,1,0],[1,1,1,1,1,1,1,0],[0,1,1,1,1,1,1,1],[0,0,1,1,1,1,0,1]];
     const PS=[[0,0,1,1,1,0,0],[0,0,0,1,0,0,0],[0,1,1,1,1,1,0],[0,0,1,1,1,0,0],[0,1,0,0,0,1,0],[0,1,0,0,0,1,0]];
@@ -2259,11 +2274,18 @@
     let sX,sY,pX,pY,scrFlash=0,bgFlash=0;
 
     function startAnn() {
-      r2(); window.addEventListener('resize', r2);
-      sX=W2*0.12; sY=H2*0.42; pX=W2*0.68; pY=H2*0.40;
       overlay.style.display='block';
-      aud2.play().catch(()=>{});
-      loop2();
+      // Wire up play button
+      document.getElementById('ann-play-btn').addEventListener('click', function() {
+        document.getElementById('ann-start').style.display='none';
+        document.getElementById('ann-canvas').style.display='block';
+        document.getElementById('ann-tap').style.display='block';
+        r2(); window.addEventListener('resize', r2);
+        sX=W2*0.12; sY=H2*0.42; pX=W2*0.68; pY=H2*0.40;
+        aud2.play().catch(()=>{});
+        overlay.onclick = closeAnniversary;
+        loop2();
+      });
     }
 
     function loop2() {
@@ -2391,6 +2413,9 @@
       aud2.pause(); aud2.currentTime=0;
       cancelAnimationFrame(raf2);
       overlay.style.display='none';
+      document.getElementById('ann-start').style.display='flex';
+      document.getElementById('ann-canvas').style.display='none';
+      document.getElementById('ann-tap').style.display='none';
       localStorage.setItem(ANN_KEY,'1');
     };
 
