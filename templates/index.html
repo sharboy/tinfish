@@ -1136,7 +1136,7 @@
 
 
 <!-- 10 DAY ANNIVERSARY POPUP -->
-<div id="anniversary-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:996;background:#060d11;overflow:hidden">
+<div id="anniversary-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:996;background:#060d11;overflow:hidden" onclick="if(window._annStarted)closeAnniversary()">
   <!-- Start screen -->
   <div id="ann-start" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center">
     <div style="font-family:'Courier New',monospace;font-size:clamp(10px,1.8vw,13px);color:#c9962b;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1.5rem">Day 10</div>
@@ -2276,14 +2276,14 @@
     function startAnn() {
       overlay.style.display='block';
       // Wire up play button
-      document.getElementById('ann-play-btn').addEventListener('click', function() {
+      document.getElementById('ann-play-btn').addEventListener('click', function(e) { e.stopPropagation();
         document.getElementById('ann-start').style.display='none';
         document.getElementById('ann-canvas').style.display='block';
         document.getElementById('ann-tap').style.display='block';
         r2(); window.addEventListener('resize', r2);
         sX=W2*0.12; sY=H2*0.42; pX=W2*0.68; pY=H2*0.40;
         aud2.play().catch(()=>{});
-        overlay.onclick = closeAnniversary;
+        window._annStarted = true;
         loop2();
       });
     }
@@ -2416,6 +2416,7 @@
       document.getElementById('ann-start').style.display='flex';
       document.getElementById('ann-canvas').style.display='none';
       document.getElementById('ann-tap').style.display='none';
+      window._annStarted = false;
       localStorage.setItem(ANN_KEY,'1');
     };
 
