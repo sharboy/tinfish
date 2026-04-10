@@ -46,7 +46,7 @@
   header {
     background: var(--ocean);
     color: var(--cream);
-    padding: 1rem 1.5rem;
+    padding: calc(1rem + env(safe-area-inset-top)) 1.5rem 1rem;
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -1151,9 +1151,8 @@
 </div>
 
 <header>
-  <h1>Tin Pact</h1>
+  <h1><span id="fish-btn" onclick="toggleMusic()" style="cursor:pointer;user-select:none;-webkit-user-select:none">🐟</span> Tin Pact</h1>
   <p>A Collective Tinned Fish Tracker</p>
-  <span id="fish-btn" onclick="toggleMusic()" style="position:absolute;bottom:8px;right:12px;cursor:pointer;user-select:none;-webkit-user-select:none;font-size:1.2rem;z-index:10;opacity:0.6">🐟</span>
 </header>
 
 <!-- SINCE YOU WERE GONE BANNER -->
