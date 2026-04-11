@@ -289,6 +289,26 @@ SLACKER_MESSAGES = [
     "Tin Pact: {name} — {days} days without a tin. The fish are waiting. So are we.",
     "{days} days, {name}. That's a lot of missed tins. Start with one. Just one.",
     "Tin Pact reminder {days}: {name}, the tins miss you. Come home.",
+    "{name}. {days} days. No tins. Genuinely embarrassing.",
+    "Congrats, {name}. {days} days without a tin. Truly a legacy of failure.",
+    "{name} hasn't logged in {days} days. Incredible. Incredibly pathetic.",
+    "{days} days, {name}. The rest of us are out here eating fish. You're eating nothing. Loser behavior.",
+    "Breaking news: {name} has been useless to the Tin Pact for {days} straight days. More at 11.",
+    "{name}, {days} days without a tin is not a vibe. It's a character flaw. Fix it.",
+    "Hot take: {name} does not actually like tinned fish. {days} days of evidence supports this.",
+    "The group has {days} fewer tins because of {name}. Let that sink in. {days} tins. Gone. Because of you.",
+    "{name} is apparently too busy or too lazy to eat a tin. {days} days confirms it.",
+    "{days} days, {name}. At this point just quit and let someone who actually cares take your spot.",
+    "{name}: {days} days of nothing. Zero contribution. Absolute deadweight. Eat a tin.",
+    "We didn't start the Tin Pact for {name} to coast for {days} days doing absolutely nothing.",
+    "{days} days of silence from {name}. The audacity. The laziness. The disrespect.",
+    "{name} has been MIA for {days} days. We're not covering for you anymore. Log something.",
+    "Fun experiment: {name} went {days} days without a tin. The experiment is called failure.",
+    "{name}, {days} days without logging is wild. Do you even want to be here? Open a tin.",
+    "The Tin Pact is not a spectator sport, {name}. {days} days on the bench is enough.",
+    "{days} days. {name}. We're starting to think you forgot what a tin looks like.",
+    "{name} is the weak link right now and has been for {days} days. You know what to do.",
+    "Unacceptable: {name}. {days} days. No tins. No excuses.",
 ]
 
 def send_tin_sms(name, tins, tin_type, date):
@@ -599,23 +619,24 @@ def slacker_check():
     if request.json.get('key') != 'fishtins':
         return jsonify({"error": "Unauthorized"}), 403
     
-    entries = supabase_request('GET', "entries?select=name,date&order=date.desc")
+    entries = supabase_request('GET', "entries?select=name,date,timestamp&order=timestamp.desc")
     if not entries:
         return jsonify({"checked": 0})
-    
-    # Find last log date per person
+
+    # Find last log date per person — use timestamp ordering (reliable) but compare against date field
     from datetime import date as _date, timedelta
-    today = _date.today()
+    import zoneinfo as _zi
+    today = datetime.now(_zi.ZoneInfo('America/New_York')).date()
     last_logged = {}
     for e in entries:
         n = e['name']
         if n not in last_logged:
             last_logged[n] = e['date']
-    
+
     called_out = []
     for name, last_date in last_logged.items():
         try:
-            d = _date.fromisoformat(last_date)
+            d = _date.fromisoformat(last_date[:10])  # handle full ISO timestamps if present
             days_ago = (today - d).days
             if days_ago >= 2:
                 send_slacker_sms(name, days_ago)

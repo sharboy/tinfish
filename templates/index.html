@@ -794,6 +794,142 @@
     padding: 0.75rem 1rem; font-family: 'DM Mono', monospace;
     font-size: 0.75rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em;
   }
+  /* Shame modal */
+  #shame-overlay {
+    position: fixed; inset: 0;
+    background: rgba(6,13,17,0.94);
+    z-index: 9000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  #shame-overlay.open { display: flex; }
+  #shame-box {
+    background: var(--cream);
+    border: 3px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--ink);
+    width: 100%; max-width: 420px;
+    text-align: center;
+    overflow: hidden;
+  }
+  #shame-header {
+    background: #b01a1a;
+    color: #fff;
+    padding: 0.9rem 1.25rem;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    border-bottom: 3px solid var(--ink);
+    letter-spacing: 0.01em;
+  }
+  #shame-body { padding: 1.5rem 1.25rem 1rem; }
+  #shame-days-big {
+    font-family: 'Playfair Display', serif;
+    font-size: 5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #b01a1a;
+    animation: shame-shake 0.4s infinite;
+  }
+  #shame-days-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  #shame-message {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--ink);
+    min-height: 3.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    transition: opacity 0.4s;
+  }
+  #shame-fish-track {
+    position: relative;
+    height: 2.5rem;
+    overflow: hidden;
+    border-top: 1px solid var(--paper);
+    border-bottom: 1px solid var(--paper);
+    background: #e8f4f8;
+    margin: 1rem 0;
+  }
+  #shame-fish {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    font-size: 1.6rem;
+    animation: shame-fish-swim 3s linear infinite;
+  }
+  #shame-progress-wrap {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    height: 1.1rem;
+    margin: 0.5rem 0;
+    position: relative;
+    overflow: hidden;
+  }
+  #shame-progress-fill {
+    height: 100%;
+    background: #b01a1a;
+    width: 0%;
+    transition: width 0.25s linear;
+  }
+  #shame-countdown {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1rem;
+  }
+  #shame-submit-btn {
+    width: 100%;
+    background: #b01a1a;
+    color: #fff;
+    border: 2px solid var(--ink);
+    padding: 0.85rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-style: italic;
+    cursor: not-allowed;
+    box-shadow: 3px 3px 0 var(--ink);
+    opacity: 0.45;
+    transition: opacity 0.3s, background 0.3s;
+    margin-bottom: 1.25rem;
+  }
+  #shame-submit-btn.ready {
+    cursor: pointer;
+    opacity: 1;
+    background: var(--ocean);
+    animation: shame-pulse 0.6s ease-in-out 3;
+  }
+  #shame-submit-btn.ready:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+  @keyframes shame-shake {
+    0%,100% { transform: translateX(0) rotate(0deg); }
+    20% { transform: translateX(-4px) rotate(-2deg); }
+    40% { transform: translateX(4px) rotate(2deg); }
+    60% { transform: translateX(-3px) rotate(-1deg); }
+    80% { transform: translateX(3px) rotate(1deg); }
+  }
+  @keyframes shame-fish-swim {
+    0%   { left: -3rem; transform: translateY(-50%) scaleX(1); }
+    49%  { left: calc(100% + 3rem); transform: translateY(-50%) scaleX(1); }
+    50%  { left: calc(100% + 3rem); transform: translateY(-50%) scaleX(-1); }
+    99%  { left: -3rem; transform: translateY(-50%) scaleX(-1); }
+    100% { left: -3rem; transform: translateY(-50%) scaleX(1); }
+  }
+  @keyframes shame-pulse {
+    0%,100% { box-shadow: 3px 3px 0 var(--ink); }
+    50% { box-shadow: 5px 5px 0 var(--ink), 0 0 18px rgba(0,120,180,0.4); }
+  }
+
   .edit-btn {
     background: none; border: none; cursor: pointer;
     color: #ccc; font-size: 0.85rem; padding: 0 0.3rem;
@@ -1225,7 +1361,7 @@
               <button type="button" class="type-pill" data-type="Herring" onclick="toggleType(this)">Herring</button>
               <button type="button" class="type-pill" data-type="Mackerel" onclick="toggleType(this)">Mackerel</button>
               <button type="button" class="type-pill" data-type="Mussels" onclick="toggleType(this)">Mussels</button>
-              <button type="button" class="type-pill" data-type="Oysters" onclick="toggleType(this)">Oysters</button>
+              <button type="button" class="type-pill" data-type="Kippers" onclick="toggleType(this)">Kippers</button>
               <button type="button" class="type-pill" data-type="Salmon" onclick="toggleType(this)">Salmon</button>
               <button type="button" class="type-pill" data-type="Sardines" onclick="toggleType(this)">Sardines</button>
               <button type="button" class="type-pill" data-type="Squid" onclick="toggleType(this)">Squid</button>
@@ -1330,6 +1466,22 @@
 </div>
 
 <!-- EDIT MODAL -->
+<!-- Shame modal — shown when submitting after 2+ days of silence -->
+<div id="shame-overlay">
+  <div id="shame-box">
+    <div id="shame-header">⚠️ Where have you been?</div>
+    <div id="shame-body">
+      <div id="shame-days-big">0</div>
+      <div id="shame-days-label">days without a tin</div>
+      <div id="shame-fish-track"><span id="shame-fish">🐟</span></div>
+      <div id="shame-message">Loading shame…</div>
+      <div id="shame-progress-wrap"><div id="shame-progress-fill"></div></div>
+      <div id="shame-countdown">Please wait…</div>
+      <button id="shame-submit-btn" disabled onclick="shameSubmitConfirm()">You must serve your time…</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="edit-modal">
   <div class="modal">
     <div class="modal-header">
@@ -1358,7 +1510,7 @@
           <option>Herring</option>
           <option>Mackerel</option>
           <option>Mussels</option>
-          <option>Oysters</option>
+          <option>Kippers</option>
           <option>Salmon</option>
           <option>Sardines</option>
           <option>Squid</option>
@@ -1646,6 +1798,96 @@
     else custom.value = '';
   }
 
+  // --- Shame modal logic ---
+  const SHAME_MESSAGES = [
+    "Oh wow. Look who finally decided to show up.",
+    "The fish were starting to think you died.",
+    "We had a memorial service. It was lovely. You weren't there.",
+    "The leaderboard has been doing fine without you. Better, actually.",
+    "We almost replaced you. We're still considering it.",
+    "Somewhere a sardine is personally offended by your absence.",
+    "The group chat has been very supportive. Of roasting you.",
+    "Incredible. Just incredible levels of laziness.",
+    "The tins didn't eat themselves. Clearly. Because you weren't here.",
+    "We genuinely thought you'd quit. The jury is still out.",
+    "Your spot on the leaderboard has gone cold. Like an uneaten tin.",
+    "The mackerel filed a missing persons report. We told them not to bother.",
+  ];
+  let _shameTimer = null;
+  let _shamePending = null; // FormData to submit after shame
+
+  function _daysSinceLastLog(name) {
+    if (!appData || !appData.entries || !appData.entries.length) return 0;
+    const lower = name.toLowerCase();
+    const mine = appData.entries.filter(e => e.name.toLowerCase() === lower);
+    if (!mine.length) return 0;
+    // entries are ordered timestamp.desc so first is most recent
+    const last = mine[0].date ? mine[0].date.slice(0, 10) : null;
+    if (!last) return 0;
+    const lastMs = new Date(last + 'T00:00:00').getTime();
+    const todayMs = new Date(new Date().toLocaleDateString('en-CA') + 'T00:00:00').getTime();
+    return Math.round((todayMs - lastMs) / 86400000);
+  }
+
+  function showShameModal(days, fd) {
+    _shamePending = fd;
+    const overlay = document.getElementById('shame-overlay');
+    const daysEl = document.getElementById('shame-days-big');
+    const msgEl = document.getElementById('shame-message');
+    const fillEl = document.getElementById('shame-progress-fill');
+    const cdEl = document.getElementById('shame-countdown');
+    const btn = document.getElementById('shame-submit-btn');
+
+    daysEl.textContent = days;
+    btn.disabled = true;
+    btn.classList.remove('ready');
+    btn.textContent = 'You must serve your time…';
+    fillEl.style.width = '0%';
+    cdEl.textContent = 'Please wait…';
+
+    // Pick a starting message
+    let msgIdx = Math.floor(Math.random() * SHAME_MESSAGES.length);
+    msgEl.textContent = SHAME_MESSAGES[msgIdx];
+
+    overlay.classList.add('open');
+
+    const DURATION = 10000;
+    const start = Date.now();
+    let msgInterval = setInterval(() => {
+      msgEl.style.opacity = '0';
+      setTimeout(() => {
+        msgIdx = (msgIdx + 1) % SHAME_MESSAGES.length;
+        msgEl.textContent = SHAME_MESSAGES[msgIdx];
+        msgEl.style.opacity = '1';
+      }, 400);
+    }, 2500);
+
+    _shameTimer = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(100, (elapsed / DURATION) * 100);
+      const remaining = Math.max(0, Math.ceil((DURATION - elapsed) / 1000));
+      fillEl.style.width = pct + '%';
+      cdEl.textContent = remaining > 0 ? `${remaining} second${remaining !== 1 ? 's' : ''} of shame remaining` : 'Time served.';
+      if (elapsed >= DURATION) {
+        clearInterval(_shameTimer);
+        clearInterval(msgInterval);
+        msgEl.textContent = "Fine. You've suffered enough. For now.";
+        btn.disabled = false;
+        btn.classList.add('ready');
+        btn.textContent = 'Fine. Log the tin. →';
+      }
+    }, 100);
+  }
+
+  async function shameSubmitConfirm() {
+    const btn = document.getElementById('shame-submit-btn');
+    if (!btn.classList.contains('ready')) return;
+    document.getElementById('shame-overlay').classList.remove('open');
+    clearInterval(_shameTimer);
+    await _doSubmitEntry(_shamePending);
+    _shamePending = null;
+  }
+
   async function submitEntry() {
     const name = document.getElementById('f-name').value.trim();
     const tins = document.getElementById('f-tins').value;
@@ -1668,6 +1910,16 @@
     fd.append('tin_type', tinType);
     if (image) fd.append('image', image);
 
+    const days = _daysSinceLastLog(name);
+    if (days >= 2) {
+      showShameModal(days, fd);
+      return;
+    }
+
+    await _doSubmitEntry(fd);
+  }
+
+  async function _doSubmitEntry(fd) {
     const btn = document.getElementById('submit-btn');
     btn.disabled = true; btn.textContent = 'Logging…';
 
@@ -1675,6 +1927,7 @@
       const res = await fetch('/api/entry', { method: 'POST', body: fd });
       const data = await res.json();
       if (data.success) {
+        const name = fd.get('name');
         localStorage.setItem('tinpact_name', name);
         showMsg('Tin logged! 🐟', 'success');
         document.getElementById('f-tins').value = '1';
@@ -1844,7 +2097,7 @@
     document.getElementById('edit-note').value = e.note || '';
     // Set type dropdown
     const typeSelect = document.getElementById('edit-type');
-    const knownTypes = ['Sardines','Anchovies','Tuna','Mackerel','Salmon','Herring','Mussels','Oysters','Squid'];
+    const knownTypes = ['Sardines','Anchovies','Tuna','Mackerel','Salmon','Herring','Mussels','Kippers','Squid'];
     if (!e.tin_type || e.tin_type === '') {
       typeSelect.value = '';
     } else if (knownTypes.includes(e.tin_type)) {
