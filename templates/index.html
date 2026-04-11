@@ -2176,21 +2176,33 @@
     setTimeout(() => { el.style.display = 'none'; }, 400);
     localStorage.setItem('tinpact_splash', SPLASH_VERSION);
   }
-  if (localStorage.getItem('tinpact_splash') !== SPLASH_VERSION) {
-    setTimeout(() => {
-      const el = document.getElementById('splash');
-      el.classList.add('visible');
-    }, 500);
-  } else {
-    document.getElementById('splash').style.display = 'none';
+  function maybeShowSplash() {
+    if (localStorage.getItem('tinpact_splash') !== SPLASH_VERSION) {
+      setTimeout(() => {
+        const el = document.getElementById('splash');
+        el.classList.add('visible');
+      }, 500);
+    } else {
+      document.getElementById('splash').style.display = 'none';
+    }
   }
+  // Don't show splash yet — wait for auth
 
   // Password gate
+  function afterAuth() {
+    // All popups fire here, in order, after password is cleared
+    document.getElementById('splash').style.display = '';
+    maybeShowSplash();
+    // Anniversary popup handled separately via window._annReadyToShow
+    if (window._annReadyToShow) { setTimeout(() => window._annReadyToShow(), 1000); }
+  }
+
   function checkPassword() {
     const val = document.getElementById('gate-input').value;
     if (val === 'fishtins') {
       localStorage.setItem('tinpact_auth', '1');
       document.getElementById('password-gate').style.display = 'none';
+      afterAuth();
     } else {
       document.getElementById('gate-error').style.display = 'block';
       document.getElementById('gate-input').value = '';
@@ -2201,7 +2213,10 @@
   // Check auth on load
   if (localStorage.getItem('tinpact_auth') === '1') {
     document.getElementById('password-gate').style.display = 'none';
+    afterAuth();
   } else {
+    // Hide splash until after auth
+    document.getElementById('splash').style.display = 'none';
     setTimeout(() => document.getElementById('gate-input').focus(), 100);
   }
 
@@ -2850,17 +2865,8 @@
       localStorage.setItem(ANN_KEY,'1');
     };
 
-    if (localStorage.getItem('tinpact_auth') === '1') {
-      setTimeout(() => startAnn(), 1000);
-    } else {
-      const _origCP = window.checkPassword;
-      window.checkPassword = function() {
-        _origCP && _origCP();
-        if (localStorage.getItem('tinpact_auth') === '1') {
-          setTimeout(() => startAnn(), 1500);
-        }
-      };
-    }
+    // Register to fire after auth via afterAuth()
+    window._annReadyToShow = function() { startAnn(); };
   })();
 
   // ── MILESTONE ANIMATION ENGINE ──
