@@ -1197,7 +1197,7 @@
     inset: 0;
     background: var(--ocean);
     z-index: 998;
-    display: flex;
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -2176,25 +2176,18 @@
     setTimeout(() => { el.style.display = 'none'; }, 400);
     localStorage.setItem('tinpact_splash', SPLASH_VERSION);
   }
-  function maybeShowSplash() {
-    if (localStorage.getItem('tinpact_splash') !== SPLASH_VERSION) {
-      setTimeout(() => {
-        const el = document.getElementById('splash');
-        el.classList.add('visible');
-      }, 500);
-    } else {
-      document.getElementById('splash').style.display = 'none';
-    }
-  }
-  // Don't show splash yet — wait for auth
+  // Splash shown via afterAuth() only
 
   // Password gate
   function afterAuth() {
-    // All popups fire here, in order, after password is cleared
-    document.getElementById('splash').style.display = '';
-    maybeShowSplash();
-    // Anniversary popup handled separately via window._annReadyToShow
-    if (window._annReadyToShow) { setTimeout(() => window._annReadyToShow(), 1000); }
+    // Show splash if not seen this version
+    const splashEl = document.getElementById('splash');
+    if (localStorage.getItem('tinpact_splash') !== SPLASH_VERSION) {
+      splashEl.style.display = 'flex';
+      setTimeout(() => splashEl.classList.add('visible'), 50);
+    }
+    // Anniversary popup
+    if (window._annReadyToShow) setTimeout(() => window._annReadyToShow(), 1200);
   }
 
   function checkPassword() {
@@ -2215,8 +2208,6 @@
     document.getElementById('password-gate').style.display = 'none';
     afterAuth();
   } else {
-    // Hide splash until after auth
-    document.getElementById('splash').style.display = 'none';
     setTimeout(() => document.getElementById('gate-input').focus(), 100);
   }
 
