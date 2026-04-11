@@ -1909,76 +1909,134 @@
     const entries = appData.entries;
     const byPerson = {};
     const lastEaten = {};
+    const allDates = {}; // all dates per person for streak calculation
+
     entries.forEach(e => {
       byPerson[e.name] = (byPerson[e.name] || 0) + e.tins;
       if (!lastEaten[e.name] || e.date > lastEaten[e.name]) lastEaten[e.name] = e.date;
+      if (!allDates[e.name]) allDates[e.name] = new Set();
+      allDates[e.name].add(e.date);
     });
 
-    const sorted = Object.entries(byPerson).sort((a,b) => b[1]-a[1]);
-    const today = new Date().toISOString().split('T')[0];
-    const total = Object.values(byPerson).reduce((s,v) => s+v, 0);
+    // Calculate streak per person
+    function getStreak(name) {
+      const dates = Array.from(allDates[name] || []).sort().reverse();
+      if (!dates.length) return 0;
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      let streak = 0;
+      let check = new Date(today);
+      // Allow today or yesterday as start
+      const last = new Date(dates[0]);
+      last.setHours(0,0,0,0);
+      const diffToLast = Math.round((today - last) / 86400000);
+      if (diffToLast > 1) return 0; // broke streak
+      check = new Date(last);
+      for (let i = 0; i < dates.length; i++) {
+        const d = new Date(dates[i]); d.setHours(0,0,0,0);
+        const diff = Math.round((check - d) / 86400000);
+        if (diff === 0) { streak++; check.setDate(check.getDate()-1); }
+        else if (diff === 1) { streak++; check = new Date(d); check.setDate(check.getDate()-1); }
+        else break;
+      }
+      return streak;
+    }
 
-    // Praise taglines (for top performers)
+    // Days since last log
+    function daysSince(name) {
+      const last = lastEaten[name];
+      if (!last) return 999;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const d = new Date(last); d.setHours(0,0,0,0);
+      return Math.round((today - d) / 86400000);
+    }
+
+    const sorted = Object.entries(byPerson).sort((a,b) => b[1]-a[1]);
+
+    function seedIndex(name, n, arr) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % arr.length;
+      return (hash + n) % arr.length;
+    }
+
+    // Praise lines (top 2 only)
     const praiseLines = [
-      (name, n) => `<strong>${name}</strong> is an absolute unit — ${n} tins deep and showing no signs of stopping. A legend in the making.`,
-      (name, n) => `Somebody get <strong>${name}</strong> a trophy. ${n} tins? That's not eating, that's a lifestyle.`,
-      (name, n) => `<strong>${name}</strong> has entered their tinned fish era and we are HERE for it. ${n} tins and counting.`,
-      (name, n) => `The ocean trembles at the name of <strong>${name}</strong>. ${n} tins consumed. Respectfully.`,
-      (name, n) => `<strong>${name}</strong> could open a tin blindfolded at this point. ${n} tins of pure dedication.`,
-      (name, n) => `Marine biologists fear <strong>${name}</strong>. ${n} tins in and still hungry. Iconic.`,
-      (name, n) => `<strong>${name}</strong> doesn't snack. <strong>${name}</strong> commits. ${n} tins is proof.`,
-      (name, n) => `At ${n} tins, <strong>${name}</strong> is practically a sardine themselves. We stan.`,
-      (name, n) => `<strong>${name}</strong> wakes up, eats tins, repeats. ${n} and counting. A true professional.`,
-      (name, n) => `If tinned fish had a hall of fame, <strong>${name}</strong> would have their own wing. ${n} tins.`,
-      (name, n) => `<strong>${name}</strong> said "200 tins? Hold my anchovy." ${n} in already.`,
-      (name, n) => `${n} tins. <strong>${name}</strong>. The rest of you are taking notes, right?`,
-      (name, n) => `<strong>${name}</strong> is carrying this group on their back like a very oily, very determined sardine.`,
-      (name, n) => `Scientists have yet to explain how <strong>${name}</strong> fits ${n} tins into their schedule. Respect.`,
-      (name, n) => `<strong>${name}</strong> looked at the goal and said "that's just a warm-up." ${n} tins in.`,
+      (name, n, streak) => `<strong>${name}</strong> is an absolute unit — ${n} tins deep and showing no signs of stopping. A legend in the making.`,
+      (name, n, streak) => `Somebody get <strong>${name}</strong> a trophy. ${n} tins? That's not eating, that's a lifestyle.`,
+      (name, n, streak) => `<strong>${name}</strong> has entered their tinned fish era and we are HERE for it. ${n} tins and counting.`,
+      (name, n, streak) => `The ocean trembles at the name of <strong>${name}</strong>. ${n} tins consumed. Respectfully.`,
+      (name, n, streak) => `<strong>${name}</strong> could open a tin blindfolded at this point. ${n} tins of pure dedication.`,
+      (name, n, streak) => `Marine biologists fear <strong>${name}</strong>. ${n} tins in and still hungry. Iconic.`,
+      (name, n, streak) => `<strong>${name}</strong> is carrying this group on their back like a very oily, very determined sardine.`,
+      (name, n, streak) => `Scientists have yet to explain how <strong>${name}</strong> fits ${n} tins into their schedule. Respect.`,
+      (name, n, streak) => `${n} tins. <strong>${name}</strong>. The rest of you are taking notes, right?`,
+      (name, n, streak) => `<strong>${name}</strong> looked at the goal and said "that's just a warm-up." ${n} tins in.`,
     ];
 
-    // Scold taglines (for laggards)
+    // Streak bonus lines
+    const streakLines = [
+      (name, streak) => `<strong>${name}</strong> is on a <strong>${streak}-day streak</strong>. Locked in. Unbothered. Eating tins.`,
+      (name, streak) => `<strong>${streak} days in a row</strong> from <strong>${name}</strong>. The consistency is actually frightening.`,
+      (name, streak) => `<strong>${name}</strong> hasn't missed a day in <strong>${streak} days</strong>. The fish have accepted their fate.`,
+      (name, streak) => `Day <strong>${streak}</strong> of <strong>${name}</strong>'s unbroken tin streak. We are witnessing history.`,
+      (name, streak) => `<strong>${name}</strong> is on a <strong>${streak}-day run</strong>. At this point it's not a challenge, it's a calling.`,
+      (name, streak) => `<strong>${streak} consecutive days</strong>. <strong>${name}</strong> didn't come to play. They came to eat fish.`,
+    ];
+
+    // Missed days scold lines
+    const missedLines = [
+      (name, days) => `<strong>${name}</strong> hasn't logged a tin in <strong>${days} days</strong>. The fish are confused. Are you okay?`,
+      (name, days) => `<strong>${days} days</strong> of silence from <strong>${name}</strong>. The leaderboard has a ${name}-shaped hole in it.`,
+      (name, days) => `<strong>${name}</strong>, it's been <strong>${days} days</strong>. The sardines are starting to think you don't like them.`,
+      (name, days) => `<strong>${days} days</strong>, <strong>${name}</strong>. The tins are just sitting there. Waiting. Judging.`,
+      (name, days) => `The group has covered for <strong>${name}</strong> for <strong>${days} days</strong>. Time to pull your weight. In tins.`,
+      (name, days) => `<strong>${name}</strong> went <strong>${days} days</strong> without logging. The sardines filed a missing persons report.`,
+    ];
+
+    // Regular scold lines
     const scoldLines = [
-      (name, n) => `<strong>${name}</strong> has eaten ${n} tin${n!==1?'s':''}. The fish are literally begging to be eaten and yet. Nothing.`,
+      (name, n) => `<strong>${name}</strong> has eaten ${n} tin${n!==1?'s':''}. The fish are literally begging to be eaten and yet.`,
       (name, n) => `${n} tin${n!==1?'s':''}. That's it. That's all <strong>${name}</strong> has contributed. The group is disappointed.`,
       (name, n) => `<strong>${name}</strong>, the tins aren't going to eat themselves. ${n} is not a number to be proud of.`,
       (name, n) => `Somewhere, a sardine is waiting for <strong>${name}</strong> to do their part. ${n} tin${n!==1?'s':''} so far. Tragic.`,
-      (name, n) => `<strong>${name}</strong> has been spotted near a supermarket but has ${n} tin${n!==1?'s':''} to show for it. Suspicious.`,
       (name, n) => `${n} tin${n!==1?'s':''}. <strong>${name}</strong>, are you even trying? The mackerel are watching.`,
       (name, n) => `<strong>${name}</strong>'s contribution of ${n} tin${n!==1?'s':''} has been noted. And judged. Mostly judged.`,
-      (name, n) => `At this rate, <strong>${name}</strong> will hit the goal sometime in 2031. Pick it up. ${n} tin${n!==1?'s':''} is embarrassing.`,
-      (name, n) => `<strong>${name}</strong>. Buddy. Pal. ${n} tin${n!==1?'s':''}? The group has a goal. You have excuses. Eat the fish.`,
+      (name, n) => `At this rate, <strong>${name}</strong> will hit the goal sometime in 2031. ${n} tin${n!==1?'s':''} is embarrassing.`,
+      (name, n) => `<strong>${name}</strong>. Buddy. Pal. ${n} tin${n!==1?'s':''}? The group has a goal. You have excuses.`,
       (name, n) => `The herring have feelings too, <strong>${name}</strong>, and they're feeling neglected. ${n} tin${n!==1?'s':''}.`,
-      (name, n) => `<strong>${name}</strong> has logged ${n} tin${n!==1?'s':''}. That's fewer tins than fingers on one hand. Get it together.`,
       (name, n) => `A ghost has eaten more tins than <strong>${name}</strong> this month. ${n}. Think about that.`,
-      (name, n) => `<strong>${name}</strong>, the team is not angry. Just disappointed. ${n} tin${n!==1?'s':''} in a month is a cry for help.`,
-      (name, n) => `${n} tin${n!==1?'s':''}? <strong>${name}</strong>, even the cat would have done better. And the cat isn't even on the team.`,
-      (name, n) => `<strong>${name}</strong> has been MIA from the tin front. ${n} logged. The sardines are shaking their tiny heads.`,
     ];
 
     const rows = [];
-    const midpoint = Math.floor(sorted.length / 2);
-
-    // Use name+tins as a seed for consistent-but-varied line selection
-    function seedIndex(name, tins, arr) {
-      let hash = 0;
-      for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % arr.length;
-      return (hash + tins) % arr.length;
-    }
 
     sorted.forEach(([name, tins], i) => {
-      const isTop = i <= midpoint && tins > 0;
-      const isBottom = i > midpoint || tins === 0;
-      if (isTop && tins >= 3) {
+      const streak = getStreak(name);
+      const missed = daysSince(name);
+      const isTop2 = i < 2;
+
+      if (isTop2 && tins > 0) {
+        // Praise
         const idx = seedIndex(name, tins, praiseLines);
-        const text = praiseLines[idx](name, tins);
-        const emojis = ['🔥','⭐','💪','🐟','👑','🎖️','🏅'];
-        rows.push({ emoji: emojis[idx % emojis.length], text, scold: false });
-      } else if (isBottom || tins < 3) {
-        const idx = seedIndex(name, tins, scoldLines);
-        const text = scoldLines[idx](name, tins);
-        const emojis = ['😤','👀','🫵','😬','🚨','💀','😒'];
-        rows.push({ emoji: emojis[idx % emojis.length], text, scold: true });
+        rows.push({ emoji: ['🔥','👑','💪','⭐','🏅','🎖️'][idx % 6], text: praiseLines[idx](name, tins, streak), scold: false });
+        // Add streak bonus if 3+ days
+        if (streak >= 3) {
+          const sidx = seedIndex(name, streak, streakLines);
+          rows.push({ emoji: '🔥', text: streakLines[sidx](name, streak), scold: false, bonus: true });
+        }
+      } else {
+        // Missed days takes priority
+        if (missed >= 2) {
+          const idx = seedIndex(name, missed, missedLines);
+          rows.push({ emoji: ['😴','👻','🚨','😤','💀','🫵'][idx % 6], text: missedLines[idx](name, missed), scold: true });
+        } else {
+          const idx = seedIndex(name, tins, scoldLines);
+          rows.push({ emoji: ['😤','👀','🫵','😬','🚨','😒'][idx % 6], text: scoldLines[idx](name, tins), scold: true });
+          // Still give streak credit even to scolds
+          if (streak >= 3) {
+            const sidx = seedIndex(name, streak, streakLines);
+            rows.push({ emoji: '📈', text: streakLines[sidx](name, streak) + ' But still not in the top 2. Try harder.', scold: false, bonus: true });
+          }
+        }
       }
     });
 
@@ -1988,12 +2046,11 @@
     }
 
     document.getElementById('tin-report-rows').innerHTML = rows.map(r => `
-      <div class="report-row">
+      <div class="report-row${r.bonus ? ' style="background:rgba(201,150,43,0.05)"' : ''}">
         <span class="report-emoji">${r.emoji}</span>
         <div class="report-text${r.scold ? ' scold' : ''}">${r.text}</div>
       </div>`).join('');
   }
-
 
   let currentEntryId = null;
 
