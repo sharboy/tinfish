@@ -647,64 +647,6 @@ def slacker_check():
     return jsonify({"checked": len(last_logged), "called_out": called_out})
 
 
-@app.route('/api/predictions', methods=['GET'])
-def get_predictions():
-    from datetime import date, timedelta
-    today = datetime.now(zoneinfo.ZoneInfo('America/New_York')).date()
-    monday = today - timedelta(days=today.weekday())
-    week_start = monday.isoformat()
-    predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*&order=timestamp.asc")
-    if predictions is None:
-        predictions = []
-    return jsonify({"predictions": predictions, "week_start": week_start})
-
-@app.route('/api/predictions', methods=['POST'])
-def submit_prediction():
-    from datetime import date, timedelta
-    data = request.json
-    predictor = data.get('predictor', '').strip()
-    predicted_winner = data.get('predicted_winner', '').strip()
-    predicted_total = data.get('predicted_total')
-    if not predictor or not predicted_winner or not predicted_total:
-        return jsonify({"error": "All fields required"}), 400
-    try:
-        predicted_total = int(predicted_total)
-        if predicted_total < 1:
-            raise ValueError()
-    except:
-        return jsonify({"error": "Invalid total"}), 400
-
-    now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
-    today = now_est.date()
-    monday = today - timedelta(days=today.weekday())
-    week_start = monday.isoformat()
-
-    # Check if open (Sunday = weekday 6, Monday = weekday 0)
-    weekday = today.weekday()
-    hour = now_est.hour
-    # Open Sunday (6) all day, Monday (0) until midnight
-    is_open = (weekday == 6) or (weekday == 0 and hour < 24)
-    if not is_open:
-        return jsonify({"error": "Predictions are closed"}), 403
-
-    # Check if already submitted
-    existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{week_start}&select=id")
-    if existing:
-        return jsonify({"error": "Already submitted"}), 409
-
-    prediction = {
-        "id": uuid.uuid4().hex,
-        "predictor": predictor,
-        "predicted_winner": predicted_winner,
-        "predicted_total": predicted_total,
-        "week_start": week_start,
-        "timestamp": now_est.isoformat()
-    }
-    result = supabase_request('POST', 'predictions', prediction)
-    if result is None:
-        return jsonify({"error": "Failed to save prediction"}), 500
-    return jsonify({"success": True, "prediction": prediction})
-
 
 @app.route('/api/predictions', methods=['GET'])
 def get_predictions():
