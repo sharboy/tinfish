@@ -647,5 +647,185 @@ def slacker_check():
     return jsonify({"checked": len(last_logged), "called_out": called_out})
 
 
+@app.route('/api/predictions', methods=['GET'])
+def get_predictions():
+    from datetime import date, timedelta
+    today = datetime.now(zoneinfo.ZoneInfo('America/New_York')).date()
+    monday = today - timedelta(days=today.weekday())
+    week_start = monday.isoformat()
+    predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*&order=timestamp.asc")
+    if predictions is None:
+        predictions = []
+    return jsonify({"predictions": predictions, "week_start": week_start})
+
+@app.route('/api/predictions', methods=['POST'])
+def submit_prediction():
+    from datetime import date, timedelta
+    data = request.json
+    predictor = data.get('predictor', '').strip()
+    predicted_winner = data.get('predicted_winner', '').strip()
+    predicted_total = data.get('predicted_total')
+    if not predictor or not predicted_winner or not predicted_total:
+        return jsonify({"error": "All fields required"}), 400
+    try:
+        predicted_total = int(predicted_total)
+        if predicted_total < 1:
+            raise ValueError()
+    except:
+        return jsonify({"error": "Invalid total"}), 400
+
+    now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
+    today = now_est.date()
+    monday = today - timedelta(days=today.weekday())
+    week_start = monday.isoformat()
+
+    # Check if open (Sunday = weekday 6, Monday = weekday 0)
+    weekday = today.weekday()
+    hour = now_est.hour
+    # Open Sunday (6) all day, Monday (0) until midnight
+    is_open = (weekday == 6) or (weekday == 0 and hour < 24)
+    if not is_open:
+        return jsonify({"error": "Predictions are closed"}), 403
+
+    # Check if already submitted
+    existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{week_start}&select=id")
+    if existing:
+        return jsonify({"error": "Already submitted"}), 409
+
+    prediction = {
+        "id": uuid.uuid4().hex,
+        "predictor": predictor,
+        "predicted_winner": predicted_winner,
+        "predicted_total": predicted_total,
+        "week_start": week_start,
+        "timestamp": now_est.isoformat()
+    }
+    result = supabase_request('POST', 'predictions', prediction)
+    if result is None:
+        return jsonify({"error": "Failed to save prediction"}), 500
+    return jsonify({"success": True, "prediction": prediction})
+
+
+@app.route('/api/predictions', methods=['GET'])
+def get_predictions():
+    today = datetime.now(zoneinfo.ZoneInfo('America/New_York')).date()
+    monday = today - timedelta(days=today.weekday())
+    week_start = monday.isoformat()
+    predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*&order=timestamp.asc")
+    if predictions is None:
+        predictions = []
+    results = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=*")
+    result = results[0] if results else None
+    return jsonify({"predictions": predictions, "week_start": week_start, "results": result})
+
+@app.route('/api/predictions', methods=['POST'])
+def submit_prediction():
+    data = request.json
+    predictor = data.get('predictor', '').strip()
+    predicted_winner = data.get('predicted_winner', '').strip()
+    predicted_total = data.get('predicted_total')
+    if not predictor or not predicted_winner or not predicted_total:
+        return jsonify({"error": "All fields required"}), 400
+    try:
+        predicted_total = int(predicted_total)
+        if predicted_total < 1:
+            raise ValueError()
+    except:
+        return jsonify({"error": "Invalid total"}), 400
+
+    now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
+    today = now_est.date()
+    monday = today - timedelta(days=today.weekday())
+    week_start = monday.isoformat()
+
+    # Open Sunday (6) and Monday (0)
+    weekday = today.weekday()
+    if weekday not in [6, 0]:
+        return jsonify({"error": "Predictions are closed"}), 403
+
+    existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{week_start}&select=id")
+    if existing:
+        return jsonify({"error": "Already submitted"}), 409
+
+    prediction = {
+        "id": uuid.uuid4().hex,
+        "predictor": predictor,
+        "predicted_winner": predicted_winner,
+        "predicted_total": predicted_total,
+        "week_start": week_start,
+    }
+    result = supabase_request('POST', 'predictions', prediction)
+    if result is None:
+        return jsonify({"error": "Failed to save"}), 500
+    return jsonify({"success": True})
+
+@app.route('/api/predictions/calculate', methods=['POST'])
+def calculate_predictions():
+    """Auto-called Sunday midnight to score the week's predictions."""
+    data = request.json or {}
+    if data.get('key') != 'fishtins':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
+    # Score the week that just ended (previous Monday to Sunday)
+    today = now_est.date()
+    monday = today - timedelta(days=today.weekday() + 7)  # previous Monday
+    week_start = monday.isoformat()
+    week_end = (monday + timedelta(days=6)).isoformat()
+
+    # Get all entries for that week
+    entries = supabase_request('GET', f"entries?date=gte.{week_start}&date=lte.{week_end}&select=name,tins")
+    if not entries:
+        return jsonify({"error": "No entries found"}), 404
+
+    # Calculate actual winner and total
+    by_person = {}
+    for e in entries:
+        by_person[e['name']] = by_person.get(e['name'], 0) + e['tins']
+    actual_winner = max(by_person, key=by_person.get)
+    actual_total = sum(by_person.values())
+
+    # Get predictions for that week
+    predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*")
+    if not predictions:
+        return jsonify({"error": "No predictions found"}), 404
+
+    # Score Q1: correct winner = 5pts
+    scores = {p['predictor']: 0 for p in predictions}
+    for p in predictions:
+        if p['predicted_winner'] == actual_winner:
+            scores[p['predictor']] += 5
+
+    # Score Q2: rank by closeness
+    ranked = sorted(predictions, key=lambda p: abs(p['predicted_total'] - actual_total))
+    pts = [5, 3, 1]
+    i = 0
+    while i < len(ranked):
+        j = i
+        while j < len(ranked) and abs(ranked[j]['predicted_total'] - actual_total) == abs(ranked[i]['predicted_total'] - actual_total):
+            j += 1
+        award = pts[i] if i < len(pts) else 0
+        for k in range(i, j):
+            scores[ranked[k]['predictor']] = scores.get(ranked[k]['predictor'], 0) + award
+        i = j
+
+    result_row = {
+        "id": uuid.uuid4().hex,
+        "week_start": week_start,
+        "actual_winner": actual_winner,
+        "actual_total": actual_total,
+        "scores": scores,
+    }
+
+    # Upsert result
+    existing = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=id")
+    if existing:
+        supabase_request('PATCH', f"prediction_results?week_start=eq.{week_start}", {"actual_winner": actual_winner, "actual_total": actual_total, "scores": scores})
+    else:
+        supabase_request('POST', 'prediction_results', result_row)
+
+    return jsonify({"success": True, "week_start": week_start, "actual_winner": actual_winner, "actual_total": actual_total, "scores": scores})
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -586,6 +586,91 @@
   }
   @keyframes fadePulse { 0%,100%{opacity:0.3} 50%{opacity:0.8} }
 
+  /* PREDICTIONS */
+  .pred-countdown {
+    background: var(--ocean);
+    color: var(--cream);
+    padding: 0.85rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border: 1.5px solid var(--ink);
+  }
+  .pred-countdown-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--silver); }
+  .pred-countdown-time { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--gold); font-weight: 700; }
+  .pred-card { background: white; border: 1.5px solid var(--ink); padding: 1rem; margin-bottom: 1rem; }
+  .pred-card-label { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
+  .pred-card-title { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--ocean); margin-bottom: 0.75rem; }
+  .pred-submit-btn {
+    width: 100%; background: var(--rust); color: white; border: 2px solid var(--ink);
+    padding: 1rem; font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic;
+    cursor: pointer; box-shadow: 3px 3px 0 var(--ink); margin-top: 0.5rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pred-submit-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+  .pred-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .pred-tooltip {
+    background: var(--ocean);
+    color: var(--cream);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1.5px solid var(--gold);
+  }
+  .pred-tooltip-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic; margin-bottom: 0.4rem; }
+  .pred-tooltip-body { font-size: 0.82rem; line-height: 1.5; color: #d0d8dc; margin-bottom: 0.75rem; }
+  .pred-tooltip-btn { background: var(--gold); border: none; color: var(--ink); padding: 0.4rem 1rem; font-family: 'DM Mono', monospace; font-size: 0.7rem; cursor: pointer; font-weight: 500; letter-spacing: 0.05em; }
+  .pred-locked { background: var(--paper); border: 1.5px solid #ccc; padding: 1rem; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.7rem; margin-bottom: 1rem; }
+  .pred-my-card { background: white; border: 1.5px solid var(--ink); margin-bottom: 1rem; overflow: hidden; }
+  .pred-my-header { background: var(--ink); color: var(--cream); padding: 0.5rem 0.85rem; font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pred-my-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; border-bottom: 1px solid #eee; font-size: 0.875rem; }
+  .pred-my-row:last-child { border-bottom: none; }
+  .pred-reveal-card { background: white; border: 1.5px solid var(--ink); margin-bottom: 0.75rem; overflow: hidden; }
+  .pred-reveal-header { background: var(--ink); color: var(--cream); padding: 0.5rem 0.85rem; font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pred-reveal-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; border-bottom: 1px solid #eee; font-size: 0.875rem; }
+  .pred-reveal-row:last-child { border-bottom: none; }
+  .pred-reveal-name { font-weight: 600; color: var(--ocean); }
+  .pred-reveal-val { color: var(--muted); font-size: 0.8rem; }
+  .pred-reveal-val span { color: var(--ocean); font-weight: 600; }
+  .pred-actual { background: white; border: 1.5px solid var(--ink); padding: 0.85rem; text-align: center; margin-top: 0.25rem; }
+  .pred-not-open { text-align: center; padding: 3rem 1.5rem; color: var(--muted); }
+  .pred-not-open .big { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--ocean); margin-bottom: 0.5rem; }
+  .pred-not-open .sub { font-family: 'DM Mono', monospace; font-size: 0.68rem; letter-spacing: 0.06em; }
+  .pred-msg { font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem; display: none; }
+  .pred-msg.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .pred-msg.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+  /* PREDICTIONS */
+  .pred-countdown { background: var(--ocean); color: var(--cream); padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border: 1.5px solid var(--ink); }
+  .pred-countdown-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--silver); }
+  .pred-countdown-time { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--gold); font-weight: 700; }
+  .pred-card { background: white; border: 1.5px solid var(--ink); padding: 1rem; margin-bottom: 1rem; }
+  .pred-card-label { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
+  .pred-card-title { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 700; color: var(--ocean); margin-bottom: 0.75rem; }
+  .pred-select { width: 100%; border: 1.5px solid #ccc; padding: 0.75rem 0.85rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; background: var(--cream); border-radius: 0; outline: none; -webkit-appearance: none; appearance: none; }
+  .pred-input { width: 100%; border: 1.5px solid #ccc; padding: 0.75rem 0.85rem; font-family: 'DM Sans', sans-serif; font-size: 1rem; background: var(--cream); border-radius: 0; outline: none; }
+  .pred-submit-btn { width: 100%; background: var(--rust); color: white; border: 2px solid var(--ink); padding: 1rem; font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); margin-top: 0.5rem; -webkit-tap-highlight-color: transparent; }
+  .pred-submit-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink); }
+  .pred-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 3px 3px 0 var(--ink); }
+  .pred-locked { background: var(--paper); border: 1.5px solid #ccc; padding: 1rem; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.7rem; margin-bottom: 1rem; }
+  .pred-my-card { background: white; border: 1.5px solid var(--ink); margin-bottom: 1rem; overflow: hidden; }
+  .pred-my-header { background: var(--ink); color: var(--cream); padding: 0.5rem 0.85rem; font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pred-my-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; border-bottom: 1px solid #eee; font-size: 0.875rem; }
+  .pred-my-row:last-child { border-bottom: none; }
+  .pred-reveal-card { background: white; border: 1.5px solid var(--ink); margin-bottom: 0.75rem; overflow: hidden; }
+  .pred-reveal-header { background: var(--ink); color: var(--cream); padding: 0.5rem 0.85rem; font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pred-reveal-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.85rem; border-bottom: 1px solid #eee; font-size: 0.875rem; }
+  .pred-reveal-row:last-child { border-bottom: none; }
+  .pred-reveal-name { font-weight: 600; color: var(--ocean); }
+  .pred-reveal-val { color: var(--muted); font-size: 0.8rem; }
+  .pred-reveal-val span { color: var(--ocean); font-weight: 600; }
+  .pred-not-open { text-align: center; padding: 3rem 1.5rem; color: var(--muted); }
+  .pred-not-open .big { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--ocean); margin-bottom: 0.5rem; }
+  .pred-not-open .sub { font-family: 'DM Mono', monospace; font-size: 0.68rem; letter-spacing: 0.06em; }
+  .pred-anim-stage { width: 100%; background: #060d11; border-bottom: 3px solid var(--gold); position: relative; overflow: hidden; }
+  .pred-anim-stage canvas { display: block; width: 100%; }
+  .pred-anim-skip { position: absolute; bottom: 8px; right: 8px; background: rgba(26,58,74,0.85); border: 1px solid var(--gold); color: var(--cream); font-family: 'DM Mono', monospace; font-size: 9px; padding: 3px 8px; cursor: pointer; letter-spacing: 0.06em; }
+
   /* REACTIONS */
   .reaction-bar {
     display: flex;
@@ -1391,6 +1476,32 @@
       </div>
     </div>
 
+
+    <!-- PREDICTIONS PAGE -->
+    <div id="page-predictions" class="page">
+      <div class="chronicle-inner" id="pred-inner">
+        <div class="section-title" style="margin-bottom:1rem">🎯 Predictions</div>
+        <div id="pred-content">
+          <div style="text-align:center;padding:2rem;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- PREDICTIONS PAGE -->
+    <div id="page-predictions" class="page">
+      <div id="pred-anim-wrap" class="pred-anim-stage" style="height:200px">
+        <canvas id="pred-anim-canvas" height="200"></canvas>
+        <button class="pred-anim-skip" onclick="skipPredAnim()">SKIP →</button>
+      </div>
+      <div class="chronicle-inner">
+        <div class="section-title" style="margin-bottom:1rem">🎯 Predictions</div>
+        <div id="pred-content">
+          <div style="text-align:center;padding:2rem;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem">Loading...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- CHRONICLE PAGE (right col on desktop) -->
     <div id="page-chronicle" class="page active">
       <!-- Mobile-only progress banner -->
@@ -1592,6 +1703,14 @@
   <button class="nav-btn" id="nav-stats" onclick="showPage('stats')">
     <span class="nav-icon">📊</span>
     <span class="nav-label">Stats</span>
+  </button>
+  <button class="nav-btn" id="nav-predictions" onclick="showPage('predictions');initPredictions()">
+    <span class="nav-icon">🎯</span>
+    <span class="nav-label">Predict</span>
+  </button>
+  <button class="nav-btn" id="nav-predictions" onclick="showPage('predictions');loadPredictions()">
+    <span class="nav-icon">🎯</span>
+    <span class="nav-label">Predict</span>
   </button>
 </nav>
 
@@ -2911,6 +3030,561 @@
 
     document.addEventListener('DOMContentLoaded',init);
   })();
+
+
+  // ── PREDICTIONS ──
+  let predData = null;
+  let predLoaded = false;
+
+  function getPredictionStatus() {
+    // Get current EST time
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const day = est.getDay(); // 0=Sun, 1=Mon, 2=Tue
+    const hour = est.getHours();
+
+    // Open: Sunday (0 in getDay = Sun) and Monday until midnight
+    // Actually getDay: 0=Sun, 1=Mon, 2=Tue
+    if (day === 0) return 'open'; // Sunday
+    if (day === 1) return 'open'; // Monday (server will enforce midnight lock)
+    if (day === 2) return 'revealed'; // Tuesday - show results
+    return 'not_open'; // Wed-Sat - not yet
+  }
+
+  function getMondayMidnightCountdown() {
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    // Find next Monday midnight
+    const day = est.getDay();
+    const daysToMonday = day === 1 ? 0 : (8 - day) % 7 || 7;
+    const monday = new Date(est);
+    monday.setDate(est.getDate() + daysToMonday);
+    monday.setHours(24, 0, 0, 0);
+    const diff = monday - est;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return `${h}h ${String(m).padStart(2,'0')}m`;
+  }
+
+  async function loadPredictions() {
+    if (predLoaded) return;
+    try {
+      const res = await fetch('/api/predictions');
+      predData = await res.json();
+      renderPredictions();
+      predLoaded = false; // always reload fresh
+    } catch(e) { console.error('Predictions load error', e); }
+  }
+
+  function renderPredictions() {
+    const status = getPredictionStatus();
+    const myName = localStorage.getItem('tinpact_name') || '';
+    const seenTooltip = localStorage.getItem('tinpact_pred_tooltip') === predData.week_start;
+    const el = document.getElementById('pred-content');
+
+    if (status === 'not_open') {
+      el.innerHTML = `
+        <div class="pred-not-open">
+          <div class="big">Predictions open Sunday</div>
+          <div class="sub">Come back then to make your picks for the week.</div>
+        </div>`;
+      return;
+    }
+
+    if (status === 'revealed') {
+      renderPredictionsRevealed(el);
+      return;
+    }
+
+    // Status is 'open'
+    // Check if this person already submitted
+    const myPred = predData && predData.predictions ? predData.predictions.find(p => p.predictor.toLowerCase() === myName.toLowerCase()) : null;
+
+    if (myPred) {
+      renderPredictionsSubmitted(el, myPred);
+      return;
+    }
+
+    // Get names from leaderboard
+    const names = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))] : [];
+
+    el.innerHTML = `
+      ${!seenTooltip ? `
+      <div class="pred-tooltip" id="pred-tooltip">
+        <div class="pred-tooltip-title">Make your predictions 🎯</div>
+        <div class="pred-tooltip-body">Predict who'll eat the most tins this week and how many we all eat. Vote locks at midnight.</div>
+        <button class="pred-tooltip-btn" onclick="localStorage.setItem('tinpact_pred_tooltip', predData.week_start);document.getElementById('pred-tooltip').style.display='none'">Got it →</button>
+      </div>` : ''}
+
+      <div class="pred-countdown">
+        <div>
+          <div class="pred-countdown-label">Locks in</div>
+          <div class="pred-countdown-time" id="pred-countdown">${getMondayMidnightCountdown()}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--silver);text-align:right">Week of<br>${predData.week_start}</div>
+      </div>
+
+      <div class="pred-msg" id="pred-msg"></div>
+
+      <div class="pred-card">
+        <div class="pred-card-label">Question 1</div>
+        <div class="pred-card-title">Who will eat the most tins this week?</div>
+        <select id="pred-winner" style="width:100%;border:1.5px solid #ccc;padding:0.75rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:1rem;background:var(--cream);border-radius:0;outline:none;-webkit-appearance:none;appearance:none">
+          <option value="">— Pick a name —</option>
+          ${names.map(n => `<option>${esc(n)}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="pred-card">
+        <div class="pred-card-label">Question 2</div>
+        <div class="pred-card-title">How many total tins will the group eat this week?</div>
+        <input type="number" id="pred-total" min="1" max="999" placeholder="e.g. 35" style="width:100%;border:1.5px solid #ccc;padding:0.75rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:1rem;background:var(--cream);border-radius:0;outline:none">
+      </div>
+
+      <button class="pred-submit-btn" id="pred-submit-btn" onclick="submitPrediction()">Lock In My Predictions →</button>
+    `;
+
+    // Start countdown ticker
+    setInterval(() => {
+      const el = document.getElementById('pred-countdown');
+      if (el) el.textContent = getMondayMidnightCountdown();
+    }, 60000);
+  }
+
+  function renderPredictionsSubmitted(el, myPred) {
+    el.innerHTML = `
+      <div style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:0.65rem 0.85rem;font-family:'DM Mono',monospace;font-size:0.72rem;margin-bottom:1rem;text-align:center">
+        Your predictions are locked in! 🔒
+      </div>
+      <div class="pred-locked">Come back Tuesday morning to see everyone's picks.</div>
+      <div class="pred-my-card">
+        <div class="pred-my-header">Your predictions</div>
+        <div class="pred-my-row">
+          <span style="color:var(--muted);font-size:0.85rem">Most tins winner</span>
+          <span style="font-weight:600;color:var(--ocean)">${esc(myPred.predicted_winner)}</span>
+        </div>
+        <div class="pred-my-row">
+          <span style="color:var(--muted);font-size:0.85rem">Group total</span>
+          <span style="font-weight:600;color:var(--ocean)">${myPred.predicted_total} tins</span>
+        </div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:center">Predictions cannot be changed once submitted.</div>
+    `;
+  }
+
+  function renderPredictionsRevealed(el) {
+    const preds = predData && predData.predictions ? predData.predictions : [];
+    if (!preds.length) {
+      el.innerHTML = `<div class="pred-not-open"><div class="big">No predictions this week</div><div class="sub">Come back Monday to make your picks!</div></div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div style="background:var(--paper);border:1.5px solid var(--ink);padding:0.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">Week of ${predData.week_start}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">Predictions Revealed 📬</div>
+        </div>
+      </div>
+
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">Who will eat the most tins?</div>
+        ${preds.map(p => `
+          <div class="pred-reveal-row">
+            <span class="pred-reveal-name">${esc(p.predictor)}</span>
+            <span class="pred-reveal-val">picked <span>${esc(p.predicted_winner)}</span></span>
+          </div>`).join('')}
+      </div>
+
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">Group total tins this week?</div>
+        ${preds.map(p => `
+          <div class="pred-reveal-row">
+            <span class="pred-reveal-name">${esc(p.predictor)}</span>
+            <span class="pred-reveal-val">guessed <span>${p.predicted_total}</span></span>
+          </div>`).join('')}
+      </div>
+
+      <div class="pred-actual">
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Scoring coming soon</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">Check the leaderboard for results!</div>
+      </div>
+    `;
+  }
+
+  async function submitPrediction() {
+    const myName = localStorage.getItem('tinpact_name') || '';
+    if (!myName) { showPredMsg('Enter your name in Log a Tin first!', 'error'); return; }
+    const winner = document.getElementById('pred-winner').value;
+    const total = document.getElementById('pred-total').value;
+    if (!winner) { showPredMsg('Please pick a winner.', 'error'); return; }
+    if (!total || parseInt(total) < 1) { showPredMsg('Please enter a group total.', 'error'); return; }
+
+    const btn = document.getElementById('pred-submit-btn');
+    btn.disabled = true; btn.textContent = 'Locking in…';
+
+    try {
+      const res = await fetch('/api/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ predictor: myName, predicted_winner: winner, predicted_total: parseInt(total) })
+      });
+      const data = await res.json();
+      if (data.success) {
+        predLoaded = false;
+        await loadPredictions();
+      } else {
+        showPredMsg(data.error || 'Something went wrong.', 'error');
+        btn.disabled = false; btn.textContent = 'Lock In My Predictions →';
+      }
+    } catch(e) {
+      showPredMsg('Network error.', 'error');
+      btn.disabled = false; btn.textContent = 'Lock In My Predictions →';
+    }
+  }
+
+  function showPredMsg(text, type) {
+    const el = document.getElementById('pred-msg');
+    if (!el) return;
+    el.textContent = text; el.className = 'pred-msg ' + type; el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
+
+
+  // ── PREDICTIONS ──
+  let predData = null;
+  let predAnimDone = false;
+  let predAnimRaf, predAnimFr = 0;
+
+  function getPredStatus() {
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+    const day = est.getDay(); // 0=Sun,1=Mon,2=Tue
+    if (day === 0 || day === 1) return 'open';
+    if (day === 2) return 'revealed';
+    return 'not_open';
+  }
+
+  function getMondayCountdown() {
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+    const day = est.getDay();
+    const daysToMon = day === 1 ? 0 : (8 - day) % 7 || 7;
+    const mon = new Date(est);
+    mon.setDate(est.getDate() + daysToMon);
+    mon.setHours(24,0,0,0);
+    const diff = mon - est;
+    const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
+    return `${h}h ${String(m).padStart(2,'0')}m`;
+  }
+
+  async function initPredictions() {
+    // Show animation first visit per week
+    const weekKey = 'tinpact_pred_anim_' + getWeekStart();
+    if (!localStorage.getItem(weekKey)) {
+      document.getElementById('pred-anim-wrap').style.display = 'block';
+      localStorage.setItem(weekKey, '1');
+      startPredAnim();
+    } else {
+      document.getElementById('pred-anim-wrap').style.display = 'none';
+    }
+    await loadPredictions();
+  }
+
+  function getWeekStart() {
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+    const mon = new Date(est);
+    mon.setDate(est.getDate() - ((est.getDay() + 6) % 7));
+    return mon.toISOString().split('T')[0];
+  }
+
+  async function loadPredictions() {
+    try {
+      const res = await fetch('/api/predictions');
+      predData = await res.json();
+      renderPredictions();
+    } catch(e) { console.error('Predictions load error', e); }
+  }
+
+  function renderPredictions() {
+    const status = getPredStatus();
+    const myName = localStorage.getItem('tinpact_name') || '';
+    const el = document.getElementById('pred-content');
+    const seenTooltip = localStorage.getItem('tinpact_pred_tip') === (predData && predData.week_start);
+
+    if (status === 'not_open') {
+      el.innerHTML = `<div class="pred-not-open"><div style="font-size:2rem;margin-bottom:0.5rem">🎯</div><div class="big">Predictions open Sunday</div><div class="sub">Come back then to make your picks for the week.</div></div>`;
+      return;
+    }
+    if (status === 'revealed') { renderPredictionsRevealed(el); return; }
+
+    const myPred = predData && predData.predictions ? predData.predictions.find(p => p.predictor.toLowerCase() === myName.toLowerCase()) : null;
+    if (myPred) { renderPredictionsSubmitted(el, myPred); return; }
+
+    const names = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))].sort() : [];
+
+    el.innerHTML = `
+      ${!seenTooltip ? `<div style="background:var(--ocean);color:var(--cream);padding:1rem;margin-bottom:1rem;border:1.5px solid var(--gold)" id="pred-tip">
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-style:italic;margin-bottom:0.35rem">Make your predictions 🎯</div>
+        <div style="font-size:0.82rem;line-height:1.5;color:#d0d8dc;margin-bottom:0.65rem">Predict who'll eat the most tins this week and how many we all eat. Vote locks at midnight.</div>
+        <button style="background:var(--gold);border:none;color:var(--ink);padding:0.4rem 1rem;font-family:'DM Mono',monospace;font-size:0.7rem;cursor:pointer;font-weight:500;letter-spacing:0.05em" onclick="localStorage.setItem('tinpact_pred_tip','${predData.week_start}');document.getElementById('pred-tip').style.display='none'">Got it →</button>
+      </div>` : ''}
+      <div class="pred-countdown">
+        <div><div class="pred-countdown-label">Locks in</div><div class="pred-countdown-time" id="pred-cd">${getMondayCountdown()}</div></div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--silver);text-align:right">Week of<br>${predData.week_start}</div>
+      </div>
+      <div id="pred-msg" style="display:none;font-family:'DM Mono',monospace;font-size:0.7rem;padding:0.5rem 0.75rem;margin-bottom:0.75rem"></div>
+      <div class="pred-card">
+        <div class="pred-card-label">Question 1</div>
+        <div class="pred-card-title">Who will eat the most tins this week?</div>
+        <select id="pred-winner" class="pred-select">
+          <option value="">— Pick a name —</option>
+          ${names.map(n => `<option>${esc(n)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="pred-card">
+        <div class="pred-card-label">Question 2</div>
+        <div class="pred-card-title">How many total tins will the group eat this week?</div>
+        <input type="number" id="pred-total" class="pred-input" placeholder="e.g. 35" min="1" max="999">
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-top:0.35rem">Last week total: check the stats!</div>
+      </div>
+      <button class="pred-submit-btn" id="pred-btn" onclick="submitPrediction()">Lock In My Predictions →</button>
+    `;
+    setInterval(() => { const cd = document.getElementById('pred-cd'); if(cd) cd.textContent = getMondayCountdown(); }, 60000);
+  }
+
+  function renderPredictionsSubmitted(el, myPred) {
+    el.innerHTML = `
+      <div style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:0.65rem 0.85rem;font-family:'DM Mono',monospace;font-size:0.72rem;margin-bottom:1rem;text-align:center">Your predictions are locked in! 🔒</div>
+      <div class="pred-locked">Come back Tuesday morning to see everyone's picks.</div>
+      <div class="pred-my-card">
+        <div class="pred-my-header">Your predictions</div>
+        <div class="pred-my-row"><span style="color:var(--muted);font-size:0.85rem">Most tins winner</span><span style="font-weight:600;color:var(--ocean)">${esc(myPred.predicted_winner)}</span></div>
+        <div class="pred-my-row"><span style="color:var(--muted);font-size:0.85rem">Group total</span><span style="font-weight:600;color:var(--ocean)">${myPred.predicted_total} tins</span></div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:center">Predictions cannot be changed once submitted.</div>
+    `;
+  }
+
+  function renderPredictionsRevealed(el) {
+    const preds = predData && predData.predictions ? predData.predictions : [];
+    const results = predData && predData.results ? predData.results : null;
+
+    if (!preds.length) {
+      el.innerHTML = `<div class="pred-not-open"><div class="big">No predictions this week</div><div class="sub">Come back Sunday to make your picks!</div></div>`;
+      return;
+    }
+
+    // Calculate scores client-side if we have results
+    let scoreMap = {};
+    if (results) {
+      // Q1: correct winner = 5pts
+      preds.forEach(p => {
+        if (!scoreMap[p.predictor]) scoreMap[p.predictor] = 0;
+        if (p.predicted_winner === results.actual_winner) scoreMap[p.predictor] += 5;
+      });
+      // Q2: rank by closeness
+      const ranked = [...preds].map(p => ({
+        name: p.predictor,
+        diff: Math.abs(p.predicted_total - results.actual_total)
+      })).sort((a,b) => a.diff - b.diff);
+      const pts = [5, 3, 1];
+      let i = 0;
+      while (i < ranked.length) {
+        let j = i;
+        while (j < ranked.length && ranked[j].diff === ranked[i].diff) j++;
+        const award = pts[i] || 0;
+        for (let k = i; k < j; k++) scoreMap[ranked[k].name] = (scoreMap[ranked[k].name] || 0) + award;
+        i = j;
+      }
+    }
+
+    const sortedScores = Object.entries(scoreMap).sort((a,b) => b[1]-a[1]);
+
+    el.innerHTML = `
+      <div style="background:var(--paper);border:1.5px solid var(--ink);padding:0.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">Week of ${predData.week_start}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">Predictions Revealed 📬</div>
+        </div>
+      </div>
+
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">Who will eat the most tins?</div>
+        ${preds.map(p => {
+          const correct = results && p.predicted_winner === results.actual_winner;
+          return `<div class="pred-reveal-row">
+            <span class="pred-reveal-name">${esc(p.predictor)}</span>
+            <span class="pred-reveal-val">picked <span>${esc(p.predicted_winner)}</span> ${results ? (correct ? '✅' : '❌') : ''}</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">Group total tins this week?</div>
+        ${preds.map(p => {
+          const diff = results ? Math.abs(p.predicted_total - results.actual_total) : null;
+          return `<div class="pred-reveal-row">
+            <span class="pred-reveal-name">${esc(p.predictor)}</span>
+            <span class="pred-reveal-val">guessed <span>${p.predicted_total}</span>${results ? ` — off by ${diff}` : ''}</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${results ? `
+      <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center;margin-bottom:0.75rem">
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Actual result</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">${esc(results.actual_winner)} won · ${results.actual_total} total tins</div>
+      </div>
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">🏆 This week's scores</div>
+        ${sortedScores.map(([name, pts], i) => `
+          <div class="pred-reveal-row">
+            <span class="pred-reveal-name">${['🥇','🥈','🥉'][i] || ''} ${esc(name)}</span>
+            <span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span>
+          </div>`).join('')}
+      </div>` : `
+      <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Results calculating... check back soon!</div>
+      </div>`}
+    `;
+  }
+
+  async function submitPrediction() {
+    const myName = localStorage.getItem('tinpact_name') || '';
+    if (!myName) { showPredMsg('Enter your name in Log a Tin first!', 'error'); return; }
+    const winner = document.getElementById('pred-winner').value;
+    const total = document.getElementById('pred-total').value;
+    if (!winner) { showPredMsg('Please pick a winner.', 'error'); return; }
+    if (!total || parseInt(total) < 1) { showPredMsg('Please enter a group total.', 'error'); return; }
+    const btn = document.getElementById('pred-btn');
+    btn.disabled = true; btn.textContent = 'Locking in…';
+    try {
+      const res = await fetch('/api/predictions', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({predictor: myName, predicted_winner: winner, predicted_total: parseInt(total)})
+      });
+      const data = await res.json();
+      if (data.success) { await loadPredictions(); }
+      else { showPredMsg(data.error || 'Something went wrong.', 'error'); btn.disabled=false; btn.textContent='Lock In My Predictions →'; }
+    } catch(e) { showPredMsg('Network error.', 'error'); btn.disabled=false; btn.textContent='Lock In My Predictions →'; }
+  }
+
+  function showPredMsg(text, type) {
+    const el = document.getElementById('pred-msg');
+    if (!el) return;
+    el.textContent=text; el.style.display='block';
+    el.style.background = type==='error'?'#f8d7da':'#d4edda';
+    el.style.color = type==='error'?'#721c24':'#155724';
+    el.style.border = `1px solid ${type==='error'?'#f5c6cb':'#c3e6cb'}`;
+    setTimeout(()=>{ el.style.display='none'; }, 3000);
+  }
+
+  function skipPredAnim() {
+    cancelAnimationFrame(predAnimRaf);
+    document.getElementById('pred-anim-wrap').style.display='none';
+  }
+
+  // ── PREDICTIONS ANIMATION ──
+  function startPredAnim() {
+    const canvas = document.getElementById('pred-anim-canvas');
+    const wrap = document.getElementById('pred-anim-wrap');
+    const ctx = canvas.getContext('2d');
+    let W, H, fr=0, shk=0;
+    let runners=[], fishes=[], parts=[], podRank=[], phase='chase';
+
+    const RUNNER=[[0,0,1,1,1,0,0],[0,0,0,1,0,0,0],[0,1,1,1,1,1,0],[0,0,1,1,1,0,0],[0,1,0,0,0,1,0],[0,1,0,0,0,1,0]];
+    const RUNNER_RUN=[[0,0,1,1,1,0,0],[0,0,0,1,0,0,0],[1,1,1,1,0,0,0],[0,0,1,1,1,0,0],[0,0,0,1,0,1,0],[0,0,1,0,0,0,0]];
+    const RUNNER_SAD=[[0,0,1,1,1,0,0],[0,0,0,1,0,0,0],[0,1,1,1,1,0,0],[0,0,1,1,0,0,0],[0,0,1,0,1,0,0],[0,0,1,0,0,1,0]];
+    const FISH=[[0,1,1,1,0,1],[1,1,2,1,1,1],[1,1,1,1,1,0],[1,1,1,1,1,0],[1,1,2,1,1,1],[0,1,1,1,0,1]];
+    const TROPHY=[[0,1,1,1,1,0],[1,1,1,1,1,1],[0,1,1,1,1,0],[0,0,1,1,0,0],[0,1,1,1,1,0],[1,1,1,1,1,1]];
+    const STAR=[[0,0,1,0,0],[0,1,1,1,0],[1,1,1,1,1],[0,1,1,1,0],[0,0,1,0,0]];
+    const COLS=['#c0392b','#5dcaa5','#c9962b','#9b59b6','#3498db'];
+    const T_POD=660, T_END=900;
+
+    function rsz(){W=canvas.width=wrap.clientWidth;H=canvas.height=200;}
+    rsz(); window.addEventListener('resize',rsz);
+
+    function spr(px,x,y,s,cols){px.forEach((r,ry)=>r.forEach((v,rx)=>{if(!v)return;ctx.fillStyle=Array.isArray(cols)?cols[v-1]:cols;ctx.fillRect(~~(x+rx*s),~~(y+ry*s),s,s);}));}
+    function conf(x,y,n,C){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-0.5)*8,vy:-(Math.random()*8+2),col:C[~~(Math.random()*C.length)],w:~~(Math.random()*5)+2,h:~~(Math.random()*3)+2,rot:Math.random()*Math.PI,rv:(Math.random()-0.5)*0.4,life:1});}
+
+    const sp=H/6;
+    runners=COLS.map((col,i)=>({col,x:-15-Math.random()*30,y:sp*(i+0.5)+sp*0.1,speed:1.3+Math.random()*1.1,fish:null,catchTime:0,targetFish:null,rank:0}));
+    for(let i=0;i<10;i++) fishes.push({x:W*0.3+Math.random()*W*0.5,y:H*0.1+Math.random()*H*0.75,vx:(Math.random()-0.5)*2.2,vy:(Math.random()-0.5)*1.8,caught:false,id:i});
+
+    function loop(){
+      if(shk>0){ctx.save();ctx.translate((Math.random()-0.5)*shk,(Math.random()-0.5)*shk);shk*=0.85;if(shk<0.3)shk=0;}
+      ctx.clearRect(-30,-30,W+60,H+60);
+      ctx.fillStyle='#060d11';ctx.fillRect(-30,-30,W+60,H+60);
+      for(let y=0;y<H;y+=3){ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(-30,y,W+60,1);}
+      ctx.fillStyle='#1a3a4a';ctx.fillRect(0,H-16,W,16);
+      ctx.fillStyle='#0d2030';ctx.fillRect(0,H-12,W,12);
+
+      if(phase==='chase'){
+        fishes.forEach(f=>{
+          if(f.caught)return;
+          f.vx+=(Math.random()-0.5)*0.3;f.vy+=(Math.random()-0.5)*0.25;
+          f.vx=Math.max(-3.5,Math.min(3.5,f.vx));f.vy=Math.max(-2.5,Math.min(2.5,f.vy));
+          f.x+=f.vx;f.y+=f.vy;
+          if(f.x<15)f.vx+=0.7;if(f.x>W-15)f.vx-=0.7;if(f.y<15)f.vy+=0.7;if(f.y>H-30)f.vy-=0.7;
+        });
+        runners.forEach(r=>{
+          if(!r.targetFish||r.targetFish.caught) r.targetFish=fishes.filter(f=>!f.caught).sort((a,b)=>Math.hypot(a.x-r.x,a.y-r.y)-Math.hypot(b.x-r.x,b.y-r.y))[0]||null;
+          if(r.targetFish&&!r.targetFish.caught){
+            const dx=r.targetFish.x-r.x,dy=r.targetFish.y-r.y,dist=Math.hypot(dx,dy);
+            if(dist<16){r.targetFish.caught=true;r.fish=r.targetFish;r.catchTime=fr;r.targetFish=null;conf(r.x,r.y,12,[r.col,'#f5f0e8','#c9962b']);shk=9;}
+            else{const spd=r.speed*(1+(fr/T_POD)*0.8);r.x+=(dx/dist)*spd;r.y+=(dy/dist)*spd*0.55;}
+          } else r.x+=r.speed*0.35;
+        });
+        fishes.forEach(f=>{if(!f.caught)spr(FISH,f.x-7,f.y-7,2.3,['#5dcaa5','#3a9a80']);});
+        runners.forEach(r=>{const sp=fr%12<6?RUNNER:RUNNER_RUN;spr(sp,r.x-8,r.y-16,2.3,r.col);if(r.fish){ctx.fillStyle='#c9962b';ctx.font='10px Courier New';ctx.textAlign='center';ctx.fillText('🐟',r.x+12,r.y-10);}});
+        ctx.fillStyle='#f5f0e8';ctx.font=`bold ${Math.min(14,W*0.036)}px 'Courier New',monospace`;ctx.textAlign='center';ctx.fillText('CATCH THE FISH!',W/2,22);
+        const ct=fishes.filter(f=>f.caught).length;ctx.fillStyle='#c9962b';ctx.font=`bold 9px 'Courier New',monospace`;ctx.fillText(`${ct}/10 CAUGHT`,W/2,38);
+        if(fr>T_POD-120){const t=(fr-(T_POD-120))/120;ctx.strokeStyle=`rgba(192,57,43,${t*0.12})`;ctx.lineWidth=1;for(let i=0;i<4;i++){ctx.beginPath();ctx.moveTo(0,H*0.12+i*(H*0.2));ctx.lineTo(W,H*0.12+i*(H*0.2));ctx.stroke();}}
+        if(fr>=T_POD){
+          phase='podium';
+          const ranked=[...runners].sort((a,b)=>{const af=a.fish?1:0,bf=b.fish?1:0;if(af!==bf)return bf-af;return(a.catchTime||9999)-(b.catchTime||9999);});
+          ranked.forEach((r,i)=>{r.rank=i+1;});podRank=ranked;
+        }
+      }
+
+      if(phase==='podium'){
+        const pf=fr-T_POD;
+        const podW=Math.min(60,W*0.15),podX=W/2,podY=H-16;
+        const hs=[podW*1.3,podW*0.8,podW*0.48],offs=[0,-podW*1.12,podW*1.12];
+        const pc=['#c9962b','#a8b5b0','#c0392b'],lb=['1ST','2ND','3RD'];
+        [0,1,2].forEach(i=>{
+          const prog=Math.min(1,(pf-i*22)/65);if(prog<=0)return;
+          const h=hs[i]*prog,px=podX+offs[i]-podW/2,py=podY-h;
+          ctx.fillStyle=pc[i];ctx.fillRect(~~px,~~py,podW,~~h);
+          ctx.fillStyle='#060d11';ctx.font=`bold ${Math.min(10,podW*0.16)}px 'Courier New',monospace`;ctx.textAlign='center';
+          if(prog>0.5)ctx.fillText(lb[i],~~(podX+offs[i]),~~(podY-5));
+          if(prog>=1&&podRank[i]){
+            const r=podRank[i];spr(RUNNER,~~(podX+offs[i]-8),~~(py-20),2.3,r.col);
+            if(i===0&&pf>100){spr(TROPHY,~~(podX-7),~~(py-42),2.3,'#c9962b');
+              if(pf>125)for(let s=0;s<4;s++){const sx=podX+Math.cos(fr*0.09+s*1.57)*26,sy=py-52+Math.sin(fr*0.09+s*1.57)*9;spr(STAR,~~sx-4,~~sy-4,1.8,'#c9962b');}
+            }
+          }
+        });
+        [3,4].forEach(i=>{
+          if(!podRank[i])return;const prog=Math.min(1,(pf-45)/55);if(prog<=0)return;
+          const r=podRank[i],ox=i===3?W*0.07:W*0.93;
+          ctx.globalAlpha=prog;spr(RUNNER_SAD,~~(ox-8),H-30,2.3,r.col);ctx.fillStyle=r.col;ctx.font=`7px 'Courier New',monospace`;ctx.textAlign='center';ctx.fillText('...',~~ox,H-36);ctx.globalAlpha=1;
+        });
+        if(pf>85){const op=Math.min(1,(pf-85)/38);ctx.globalAlpha=op;ctx.fillStyle='#f5f0e8';ctx.font=`bold ${Math.min(14,W*0.036)}px 'Courier New',monospace`;ctx.textAlign='center';ctx.fillText('WHO WILL REIGN?',W/2,22);ctx.fillStyle='#c9962b';ctx.font=`bold 9px 'Courier New',monospace`;ctx.fillText('MAKE YOUR PREDICTION',W/2,38);ctx.globalAlpha=1;}
+        if(pf>130&&fr%7===0)conf(Math.random()*W,-5,2,['#c9962b','#f5f0e8','#5dcaa5','#c0392b','#9b59b6']);
+      }
+
+      parts=parts.filter(p=>p.life>0);
+      parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;p.rot+=p.rv;p.life-=0.011;if(p.y>H+20)p.life=0;ctx.save();ctx.translate(~~p.x,~~p.y);ctx.rotate(p.rot);ctx.fillStyle=p.col;ctx.globalAlpha=p.life;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.globalAlpha=1;ctx.restore();});
+
+      if(shk>0)ctx.restore();
+      fr++;
+      if(fr<T_END+60)predAnimRaf=requestAnimationFrame(loop);
+      else wrap.style.display='none';
+    }
+    loop();
+  }
 
   function renderStats() {
     if (!appData || !appData.entries) return;
