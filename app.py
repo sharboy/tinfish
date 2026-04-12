@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 import zoneinfo
 import urllib.request
 import urllib.error
@@ -689,11 +689,14 @@ def submit_prediction():
     if existing:
         return jsonify({"error": "Already submitted"}), 409
 
+    individual_predictions = data.get('individual_predictions', {})
+
     prediction = {
         "id": uuid.uuid4().hex,
         "predictor": predictor,
         "predicted_winner": predicted_winner,
         "predicted_total": predicted_total,
+        "individual_predictions": individual_predictions,
         "week_start": week_start,
     }
     result = supabase_request('POST', 'predictions', prediction)
@@ -732,15 +735,15 @@ def calculate_predictions():
     if not predictions:
         return jsonify({"error": "No predictions found"}), 404
 
-    # Score Q1: correct winner = 5pts
+    # Score Q1: correct winner = 15pts
     scores = {p['predictor']: 0 for p in predictions}
     for p in predictions:
         if p['predicted_winner'] == actual_winner:
-            scores[p['predictor']] += 5
+            scores[p['predictor']] += 15
 
-    # Score Q2: rank by closeness
+    # Score Q2: 15/3/1 closest group total
     ranked = sorted(predictions, key=lambda p: abs(p['predicted_total'] - actual_total))
-    pts = [5, 3, 1]
+    pts = [15, 3, 1]
     i = 0
     while i < len(ranked):
         j = i
@@ -751,18 +754,40 @@ def calculate_predictions():
             scores[ranked[k]['predictor']] = scores.get(ranked[k]['predictor'], 0) + award
         i = j
 
+    # Score Q3: 5/3/1 per person individual predictions
+    for person, actual_n in by_person.items():
+        guesses = []
+        for p in predictions:
+            if p['predictor'] == person:
+                continue  # skip predicting yourself
+            ind = p.get('individual_predictions') or {}
+            if person in ind:
+                guesses.append({'name': p['predictor'], 'diff': abs(int(ind[person]) - actual_n)})
+        guesses.sort(key=lambda x: x['diff'])
+        q3pts = [5, 3, 1]
+        ii = 0
+        while ii < len(guesses):
+            jj = ii
+            while jj < len(guesses) and guesses[jj]['diff'] == guesses[ii]['diff']:
+                jj += 1
+            award = q3pts[ii] if ii < len(q3pts) else 0
+            for kk in range(ii, jj):
+                scores[guesses[kk]['name']] = scores.get(guesses[kk]['name'], 0) + award
+            ii = jj
+
     result_row = {
         "id": uuid.uuid4().hex,
         "week_start": week_start,
         "actual_winner": actual_winner,
         "actual_total": actual_total,
+        "actual_individual": by_person,
         "scores": scores,
     }
 
     # Upsert result
     existing = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=id")
     if existing:
-        supabase_request('PATCH', f"prediction_results?week_start=eq.{week_start}", {"actual_winner": actual_winner, "actual_total": actual_total, "scores": scores})
+        supabase_request('PATCH', f"prediction_results?week_start=eq.{week_start}", {"actual_winner": actual_winner, "actual_total": actual_total, "actual_individual": by_person, "scores": scores})
     else:
         supabase_request('POST', 'prediction_results', result_row)
 

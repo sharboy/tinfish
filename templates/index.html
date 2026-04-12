@@ -1479,6 +1479,17 @@
 
     <!-- PREDICTIONS PAGE -->
     <div id="page-predictions" class="page">
+      <div class="chronicle-inner" id="pred-inner">
+        <div class="section-title" style="margin-bottom:1rem">🎯 Predictions</div>
+        <div id="pred-content">
+          <div style="text-align:center;padding:2rem;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- PREDICTIONS PAGE -->
+    <div id="page-predictions" class="page">
       <div id="pred-anim-wrap" class="pred-anim-stage" style="height:200px">
         <canvas id="pred-anim-canvas" height="200"></canvas>
         <button class="pred-anim-skip" onclick="skipPredAnim()">SKIP →</button>
@@ -1694,6 +1705,10 @@
     <span class="nav-label">Stats</span>
   </button>
   <button class="nav-btn" id="nav-predictions" onclick="showPage('predictions');initPredictions()">
+    <span class="nav-icon">🎯</span>
+    <span class="nav-label">Predict</span>
+  </button>
+  <button class="nav-btn" id="nav-predictions" onclick="showPage('predictions');loadPredictions()">
     <span class="nav-icon">🎯</span>
     <span class="nav-label">Predict</span>
   </button>
@@ -3016,13 +3031,46 @@
 
   // ── PREDICTIONS ──
   let predData = null;
-  let predAnimDone = false;
-  let predAnimRaf, predAnimFr = 0;
+  let predLoaded = false;
+
+  function getPredictionStatus() {
+    // Get current EST time
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const day = est.getDay(); // 0=Sun, 1=Mon, 2=Tue
+    const hour = est.getHours();
+
+    // Open: Sunday (0 in getDay = Sun) and Monday until midnight
+    // Actually getDay: 0=Sun, 1=Mon, 2=Tue
+    if (day === 0) return 'open'; // Sunday
+    if (day === 1) return 'open'; // Monday (server will enforce midnight lock)
+    if (day === 2) return 'revealed'; // Tuesday - show results
+    return 'not_open'; // Wed-Sat - not yet
+  }
+
+  function getMondayMidnightCountdown() {
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    // Find next Monday midnight
+    const day = est.getDay();
+    const daysToMonday = day === 1 ? 0 : (8 - day) % 7 || 7;
+    const monday = new Date(est);
+    monday.setDate(est.getDate() + daysToMonday);
+    monday.setHours(24, 0, 0, 0);
+    const diff = monday - est;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return `${h}h ${String(m).padStart(2,'0')}m`;
+  }
+
+  // ── PREDICTIONS ──
+  let predData = null;
+  let predAnimRaf;
 
   function getPredStatus() {
     const now = new Date();
     const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
-    const day = est.getDay(); // 0=Sun,1=Mon,2=Tue
+    const day = est.getDay();
     if (day === 0 || day === 1) return 'open';
     if (day === 2) return 'revealed';
     return 'not_open';
@@ -3041,8 +3089,15 @@
     return `${h}h ${String(m).padStart(2,'0')}m`;
   }
 
+  function getWeekStart() {
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+    const mon = new Date(est);
+    mon.setDate(est.getDate() - ((est.getDay() + 6) % 7));
+    return mon.toISOString().split('T')[0];
+  }
+
   async function initPredictions() {
-    // Show animation first visit per week
     const weekKey = 'tinpact_pred_anim_' + getWeekStart();
     if (!localStorage.getItem(weekKey)) {
       document.getElementById('pred-anim-wrap').style.display = 'block';
@@ -3052,14 +3107,6 @@
       document.getElementById('pred-anim-wrap').style.display = 'none';
     }
     await loadPredictions();
-  }
-
-  function getWeekStart() {
-    const now = new Date();
-    const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
-    const mon = new Date(est);
-    mon.setDate(est.getDate() - ((est.getDay() + 6) % 7));
-    return mon.toISOString().split('T')[0];
   }
 
   async function loadPredictions() {
@@ -3085,7 +3132,8 @@
     const myPred = predData && predData.predictions ? predData.predictions.find(p => p.predictor.toLowerCase() === myName.toLowerCase()) : null;
     if (myPred) { renderPredictionsSubmitted(el, myPred); return; }
 
-    const names = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))].sort() : [];
+    const allNames = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))].sort() : [];
+    const otherNames = allNames.filter(n => n.toLowerCase() !== myName.toLowerCase());
 
     el.innerHTML = `
       ${!seenTooltip ? `<div style="background:var(--ocean);color:var(--cream);padding:1rem;margin-bottom:1rem;border:1.5px solid var(--gold)" id="pred-tip">
@@ -3093,31 +3141,46 @@
         <div style="font-size:0.82rem;line-height:1.5;color:#d0d8dc;margin-bottom:0.65rem">Predict who'll eat the most tins this week and how many we all eat. Vote locks at midnight.</div>
         <button style="background:var(--gold);border:none;color:var(--ink);padding:0.4rem 1rem;font-family:'DM Mono',monospace;font-size:0.7rem;cursor:pointer;font-weight:500;letter-spacing:0.05em" onclick="localStorage.setItem('tinpact_pred_tip','${predData.week_start}');document.getElementById('pred-tip').style.display='none'">Got it →</button>
       </div>` : ''}
+
       <div class="pred-countdown">
         <div><div class="pred-countdown-label">Locks in</div><div class="pred-countdown-time" id="pred-cd">${getMondayCountdown()}</div></div>
         <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--silver);text-align:right">Week of<br>${predData.week_start}</div>
       </div>
       <div id="pred-msg" style="display:none;font-family:'DM Mono',monospace;font-size:0.7rem;padding:0.5rem 0.75rem;margin-bottom:0.75rem"></div>
+
       <div class="pred-card">
-        <div class="pred-card-label">Question 1</div>
+        <div class="pred-card-label">Question 1 · 15 pts</div>
         <div class="pred-card-title">Who will eat the most tins this week?</div>
         <select id="pred-winner" class="pred-select">
           <option value="">— Pick a name —</option>
-          ${names.map(n => `<option>${esc(n)}</option>`).join('')}
+          ${allNames.map(n => `<option>${esc(n)}</option>`).join('')}
         </select>
       </div>
+
       <div class="pred-card">
-        <div class="pred-card-label">Question 2</div>
+        <div class="pred-card-label">Question 2 · 15 pts</div>
         <div class="pred-card-title">How many total tins will the group eat this week?</div>
         <input type="number" id="pred-total" class="pred-input" placeholder="e.g. 35" min="1" max="999">
-        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-top:0.35rem">Last week total: check the stats!</div>
       </div>
+
+      ${otherNames.length ? `<div class="pred-card">
+        <div class="pred-card-label">Question 3 · 5 pts each</div>
+        <div class="pred-card-title">How many tins will each person eat?</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-bottom:0.75rem">Closest guess per person wins points</div>
+        ${otherNames.map(n => `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;gap:0.75rem">
+            <span style="font-size:0.9rem;font-weight:500;color:var(--ocean);flex:1">${esc(n)}</span>
+            <input type="number" id="pred-ind-${esc(n).replace(/\s+/g,'_')}" min="0" max="99" placeholder="tins" style="width:80px;border:1.5px solid #ccc;padding:0.45rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);border-radius:0;outline:none;text-align:center">
+          </div>`).join('')}
+      </div>` : ''}
+
       <button class="pred-submit-btn" id="pred-btn" onclick="submitPrediction()">Lock In My Predictions →</button>
     `;
     setInterval(() => { const cd = document.getElementById('pred-cd'); if(cd) cd.textContent = getMondayCountdown(); }, 60000);
   }
 
   function renderPredictionsSubmitted(el, myPred) {
+    const indPreds = myPred.individual_predictions || {};
     el.innerHTML = `
       <div style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:0.65rem 0.85rem;font-family:'DM Mono',monospace;font-size:0.72rem;margin-bottom:1rem;text-align:center">Your predictions are locked in! 🔒</div>
       <div class="pred-locked">Come back Tuesday morning to see everyone's picks.</div>
@@ -3125,6 +3188,7 @@
         <div class="pred-my-header">Your predictions</div>
         <div class="pred-my-row"><span style="color:var(--muted);font-size:0.85rem">Most tins winner</span><span style="font-weight:600;color:var(--ocean)">${esc(myPred.predicted_winner)}</span></div>
         <div class="pred-my-row"><span style="color:var(--muted);font-size:0.85rem">Group total</span><span style="font-weight:600;color:var(--ocean)">${myPred.predicted_total} tins</span></div>
+        ${Object.entries(indPreds).map(([name, n]) => `<div class="pred-my-row"><span style="color:var(--muted);font-size:0.85rem">${esc(name)}</span><span style="font-weight:600;color:var(--ocean)">${n} tins</span></div>`).join('')}
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:center">Predictions cannot be changed once submitted.</div>
     `;
@@ -3139,31 +3203,35 @@
       return;
     }
 
-    // Calculate scores client-side if we have results
+    // Calculate scores
     let scoreMap = {};
+    preds.forEach(p => { scoreMap[p.predictor] = 0; });
+
     if (results) {
-      // Q1: correct winner = 5pts
-      preds.forEach(p => {
-        if (!scoreMap[p.predictor]) scoreMap[p.predictor] = 0;
-        if (p.predicted_winner === results.actual_winner) scoreMap[p.predictor] += 5;
+      // Q1: 15pts for correct winner
+      preds.forEach(p => { if (p.predicted_winner === results.actual_winner) scoreMap[p.predictor] += 15; });
+
+      // Q2: 15/3/1 closest group total
+      const q2ranked = [...preds].map(p => ({name:p.predictor, diff:Math.abs(p.predicted_total - results.actual_total)})).sort((a,b)=>a.diff-b.diff);
+      const q2pts = [15,3,1];
+      let i=0;
+      while(i<q2ranked.length){let j=i;while(j<q2ranked.length&&q2ranked[j].diff===q2ranked[i].diff)j++;const award=q2pts[i]||0;for(let k=i;k<j;k++)scoreMap[q2ranked[k].name]=(scoreMap[q2ranked[k].name]||0)+award;i=j;}
+
+      // Q3: 5/3/1 per person
+      const allPeople = results.actual_individual ? Object.keys(results.actual_individual) : [];
+      allPeople.forEach(person => {
+        const actual = results.actual_individual[person];
+        const guesses = preds.filter(p => p.predictor !== person && p.individual_predictions && p.individual_predictions[person] !== undefined)
+          .map(p => ({name:p.predictor, diff:Math.abs((p.individual_predictions[person]||0)-actual)}))
+          .sort((a,b)=>a.diff-b.diff);
+        const q3pts=[5,3,1];
+        let ii=0;
+        while(ii<guesses.length){let jj=ii;while(jj<guesses.length&&guesses[jj].diff===guesses[ii].diff)jj++;const award=q3pts[ii]||0;for(let kk=ii;kk<jj;kk++)scoreMap[guesses[kk].name]=(scoreMap[guesses[kk].name]||0)+award;ii=jj;}
       });
-      // Q2: rank by closeness
-      const ranked = [...preds].map(p => ({
-        name: p.predictor,
-        diff: Math.abs(p.predicted_total - results.actual_total)
-      })).sort((a,b) => a.diff - b.diff);
-      const pts = [5, 3, 1];
-      let i = 0;
-      while (i < ranked.length) {
-        let j = i;
-        while (j < ranked.length && ranked[j].diff === ranked[i].diff) j++;
-        const award = pts[i] || 0;
-        for (let k = i; k < j; k++) scoreMap[ranked[k].name] = (scoreMap[ranked[k].name] || 0) + award;
-        i = j;
-      }
     }
 
-    const sortedScores = Object.entries(scoreMap).sort((a,b) => b[1]-a[1]);
+    const sortedScores = Object.entries(scoreMap).sort((a,b)=>b[1]-a[1]);
+    const allPeople = results && results.actual_individual ? Object.keys(results.actual_individual) : [];
 
     el.innerHTML = `
       <div style="background:var(--paper);border:1.5px solid var(--ink);padding:0.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
@@ -3174,26 +3242,24 @@
       </div>
 
       <div class="pred-reveal-card">
-        <div class="pred-reveal-header">Who will eat the most tins?</div>
-        ${preds.map(p => {
-          const correct = results && p.predicted_winner === results.actual_winner;
-          return `<div class="pred-reveal-row">
-            <span class="pred-reveal-name">${esc(p.predictor)}</span>
-            <span class="pred-reveal-val">picked <span>${esc(p.predicted_winner)}</span> ${results ? (correct ? '✅' : '❌') : ''}</span>
-          </div>`;
-        }).join('')}
+        <div class="pred-reveal-header">Q1 · Who eats the most? (15 pts)</div>
+        ${preds.map(p => { const correct = results && p.predicted_winner === results.actual_winner; return `<div class="pred-reveal-row"><span class="pred-reveal-name">${esc(p.predictor)}</span><span class="pred-reveal-val">picked <span>${esc(p.predicted_winner)}</span> ${results?(correct?'✅':'❌'):''}</span></div>`; }).join('')}
       </div>
 
       <div class="pred-reveal-card">
-        <div class="pred-reveal-header">Group total tins this week?</div>
-        ${preds.map(p => {
-          const diff = results ? Math.abs(p.predicted_total - results.actual_total) : null;
-          return `<div class="pred-reveal-row">
-            <span class="pred-reveal-name">${esc(p.predictor)}</span>
-            <span class="pred-reveal-val">guessed <span>${p.predicted_total}</span>${results ? ` — off by ${diff}` : ''}</span>
-          </div>`;
-        }).join('')}
+        <div class="pred-reveal-header">Q2 · Group total? (15 pts)</div>
+        ${preds.map(p => { const diff = results ? Math.abs(p.predicted_total - results.actual_total) : null; return `<div class="pred-reveal-row"><span class="pred-reveal-name">${esc(p.predictor)}</span><span class="pred-reveal-val">guessed <span>${p.predicted_total}</span>${results?` — off by ${diff}`:''}</span></div>`; }).join('')}
       </div>
+
+      ${allPeople.map(person => `
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">Q3 · ${esc(person)}'s tins? (5 pts)</div>
+        ${preds.filter(p=>p.predictor!==person).map(p => {
+          const guess = p.individual_predictions && p.individual_predictions[person] !== undefined ? p.individual_predictions[person] : '—';
+          const diff = results && typeof guess === 'number' ? Math.abs(guess - results.actual_individual[person]) : null;
+          return `<div class="pred-reveal-row"><span class="pred-reveal-name">${esc(p.predictor)}</span><span class="pred-reveal-val">guessed <span>${guess}</span>${diff!==null?` — off by ${diff}`:''}</span></div>`;
+        }).join('')}
+      </div>`).join('')}
 
       ${results ? `
       <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center;margin-bottom:0.75rem">
@@ -3202,15 +3268,8 @@
       </div>
       <div class="pred-reveal-card">
         <div class="pred-reveal-header">🏆 This week's scores</div>
-        ${sortedScores.map(([name, pts], i) => `
-          <div class="pred-reveal-row">
-            <span class="pred-reveal-name">${['🥇','🥈','🥉'][i] || ''} ${esc(name)}</span>
-            <span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span>
-          </div>`).join('')}
-      </div>` : `
-      <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center">
-        <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Results calculating... check back soon!</div>
-      </div>`}
+        ${sortedScores.map(([name,pts],i)=>`<div class="pred-reveal-row"><span class="pred-reveal-name">${['🥇','🥈','🥉'][i]||''} ${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span></div>`).join('')}
+      </div>` : `<div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Results calculating... check back soon!</div></div>`}
     `;
   }
 
@@ -3221,12 +3280,22 @@
     const total = document.getElementById('pred-total').value;
     if (!winner) { showPredMsg('Please pick a winner.', 'error'); return; }
     if (!total || parseInt(total) < 1) { showPredMsg('Please enter a group total.', 'error'); return; }
+
+    // Collect individual predictions
+    const allNames = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))].sort() : [];
+    const otherNames = allNames.filter(n => n.toLowerCase() !== myName.toLowerCase());
+    const individual_predictions = {};
+    for (const n of otherNames) {
+      const inp = document.getElementById('pred-ind-' + n.replace(/\s+/g,'_'));
+      if (inp && inp.value !== '') individual_predictions[n] = parseInt(inp.value);
+    }
+
     const btn = document.getElementById('pred-btn');
     btn.disabled = true; btn.textContent = 'Locking in…';
     try {
       const res = await fetch('/api/predictions', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({predictor: myName, predicted_winner: winner, predicted_total: parseInt(total)})
+        body: JSON.stringify({predictor: myName, predicted_winner: winner, predicted_total: parseInt(total), individual_predictions})
       });
       const data = await res.json();
       if (data.success) { await loadPredictions(); }
@@ -3243,6 +3312,7 @@
     el.style.border = `1px solid ${type==='error'?'#f5c6cb':'#c3e6cb'}`;
     setTimeout(()=>{ el.style.display='none'; }, 3000);
   }
+
 
   function skipPredAnim() {
     cancelAnimationFrame(predAnimRaf);
