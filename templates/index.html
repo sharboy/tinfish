@@ -1479,7 +1479,7 @@
 
     <!-- PREDICTIONS PAGE -->
     <div id="page-predictions" class="page">
-      <div id="pred-anim-wrap" class="pred-anim-stage" style="height:200px">
+      <div id="pred-anim-wrap" class="pred-anim-stage" style="height:200px;display:none">
         <canvas id="pred-anim-canvas" height="200"></canvas>
         <button class="pred-anim-skip" onclick="skipPredAnim()">SKIP →</button>
       </div>
@@ -3052,10 +3052,7 @@
     const weekKey = 'tinpact_pred_anim_' + getWeekStart();
     if (!localStorage.getItem(weekKey)) {
       document.getElementById('pred-anim-wrap').style.display = 'block';
-      localStorage.setItem(weekKey, '1');
-      startPredAnim();
-    } else {
-      document.getElementById('pred-anim-wrap').style.display = 'none';
+      startPredAnim(function() { localStorage.setItem(weekKey, '1'); });
     }
     await loadPredictions();
   }
@@ -3265,13 +3262,16 @@
   }
 
 
+  let _predAnimDone = null;
   function skipPredAnim() {
     cancelAnimationFrame(predAnimRaf);
     document.getElementById('pred-anim-wrap').style.display='none';
+    if (_predAnimDone) { _predAnimDone(); _predAnimDone = null; }
   }
 
   // ── PREDICTIONS ANIMATION ──
-  function startPredAnim() {
+  function startPredAnim(onDone) {
+    _predAnimDone = onDone || null;
     const canvas = document.getElementById('pred-anim-canvas');
     const wrap = document.getElementById('pred-anim-wrap');
     const ctx = canvas.getContext('2d');
@@ -3366,7 +3366,7 @@
       if(shk>0)ctx.restore();
       fr++;
       if(fr<T_END+60)predAnimRaf=requestAnimationFrame(loop);
-      else wrap.style.display='none';
+      else { wrap.style.display='none'; if(_predAnimDone){_predAnimDone();_predAnimDone=null;} }
     }
     loop();
   }
