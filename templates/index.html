@@ -3031,40 +3031,6 @@
 
   // ── PREDICTIONS ──
   let predData = null;
-  let predLoaded = false;
-
-  function getPredictionStatus() {
-    // Get current EST time
-    const now = new Date();
-    const est = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const day = est.getDay(); // 0=Sun, 1=Mon, 2=Tue
-    const hour = est.getHours();
-
-    // Open: Sunday (0 in getDay = Sun) and Monday until midnight
-    // Actually getDay: 0=Sun, 1=Mon, 2=Tue
-    if (day === 0) return 'open'; // Sunday
-    if (day === 1) return 'open'; // Monday (server will enforce midnight lock)
-    if (day === 2) return 'revealed'; // Tuesday - show results
-    return 'not_open'; // Wed-Sat - not yet
-  }
-
-  function getMondayMidnightCountdown() {
-    const now = new Date();
-    const est = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    // Find next Monday midnight
-    const day = est.getDay();
-    const daysToMonday = day === 1 ? 0 : (8 - day) % 7 || 7;
-    const monday = new Date(est);
-    monday.setDate(est.getDate() + daysToMonday);
-    monday.setHours(24, 0, 0, 0);
-    const diff = monday - est;
-    const h = Math.floor(diff / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    return `${h}h ${String(m).padStart(2,'0')}m`;
-  }
-
-  // ── PREDICTIONS ──
-  let predData = null;
   let predAnimRaf;
 
   function getPredStatus() {
