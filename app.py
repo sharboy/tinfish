@@ -660,6 +660,15 @@ def get_predictions():
     predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*&order=timestamp.asc")
     if predictions is None:
         predictions = []
+    # Backward-compat: before the Sunday fix, Sunday submissions were stored under
+    # the previous Monday's date. On Monday, also pull those in so they still show up.
+    if today.weekday() == 0:  # Monday
+        prev_week_start = (monday - timedelta(days=7)).isoformat()
+        prev_preds = supabase_request('GET', f"predictions?week_start=eq.{prev_week_start}&select=*&order=timestamp.asc") or []
+        existing_predictors = {p['predictor'].lower() for p in predictions}
+        for p in prev_preds:
+            if p['predictor'].lower() not in existing_predictors:
+                predictions.append(p)
     results = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=*")
     result = results[0] if results else None
     return jsonify({"predictions": predictions, "week_start": week_start, "results": result})
@@ -694,6 +703,9 @@ def submit_prediction():
         return jsonify({"error": "Predictions are closed"}), 403
 
     existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{week_start}&select=id")
+    if not existing and weekday == 0:  # Monday: also check Sunday submissions stored under old week_start
+        prev_week_start = (monday - timedelta(days=7)).isoformat()
+        existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{prev_week_start}&select=id")
     if existing:
         return jsonify({"error": "Already submitted"}), 409
 
