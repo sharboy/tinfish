@@ -666,6 +666,12 @@
   .pred-msg { font-family: 'DM Mono', monospace; font-size: 0.72rem; padding: 0.55rem 0.75rem; margin-bottom: 0.75rem; display: none; }
   .pred-msg.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
   .pred-msg.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  .pred-status-row { display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0.85rem; border-bottom: 1px solid #eee; }
+  .pred-status-row:last-child { border-bottom: none; }
+  .pred-status-name { font-size: 0.9rem; font-weight: 500; color: var(--ocean); }
+  .pred-status-badge { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.04em; padding: 0.18rem 0.5rem; }
+  .pred-status-done { background: #d4edda; color: #155724; }
+  .pred-status-pending { background: var(--paper); color: var(--muted); }
 
   /* PREDICTIONS */
   .pred-countdown { background: var(--ocean); color: var(--cream); padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border: 1.5px solid var(--ink); }
@@ -3174,6 +3180,7 @@
           </div>`).join('')}
       </div>` : ''}
 
+      ${renderPredSubmissionStatus()}
       <button class="pred-submit-btn" id="pred-btn" onclick="submitPrediction()">Lock In My Predictions →</button>
     `;
     setInterval(() => { const cd = document.getElementById('pred-cd'); if(cd) cd.textContent = getMondayCountdown(); }, 60000);
@@ -3207,6 +3214,18 @@
     renderPredictions();
   }
 
+  function renderPredSubmissionStatus() {
+    const allNames = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))].sort() : [];
+    if (!allNames.length) return '';
+    const submitted = new Set((predData && predData.predictions ? predData.predictions : []).map(p => p.predictor.toLowerCase()));
+    const submittedCount = allNames.filter(n => submitted.has(n.toLowerCase())).length;
+    const rows = allNames.map(n => {
+      const done = submitted.has(n.toLowerCase());
+      return `<div class="pred-status-row"><span class="pred-status-name">${esc(n)}</span><span class="pred-status-badge ${done ? 'pred-status-done' : 'pred-status-pending'}">${done ? '✓ submitted' : 'pending'}</span></div>`;
+    }).join('');
+    return `<div class="pred-my-card" style="margin-top:1rem"><div class="pred-my-header">Submissions this week · ${submittedCount}/${allNames.length}</div>${rows}</div>`;
+  }
+
   function renderPredictionsSubmitted(el, myPred) {
     const indPreds = myPred.individual_predictions || {};
     el.innerHTML = `
@@ -3219,6 +3238,7 @@
         ${Object.entries(indPreds).map(([name, n]) => `<div class="pred-my-row"><span style="color:var(--muted);font-size:0.85rem">${esc(name)}</span><span style="font-weight:600;color:var(--ocean)">${n} tins</span></div>`).join('')}
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:center">Predictions cannot be changed once submitted.</div>
+      ${renderPredSubmissionStatus()}
     `;
   }
 
