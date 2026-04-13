@@ -651,7 +651,11 @@ def slacker_check():
 @app.route('/api/predictions', methods=['GET'])
 def get_predictions():
     today = datetime.now(zoneinfo.ZoneInfo('America/New_York')).date()
-    monday = today - timedelta(days=today.weekday())
+    # If Sunday, week_start = next Monday. If Mon-Sat, week_start = this Monday.
+    if today.weekday() == 6:  # Sunday
+        monday = today + timedelta(days=1)
+    else:
+        monday = today - timedelta(days=today.weekday())
     week_start = monday.isoformat()
     predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*&order=timestamp.asc")
     if predictions is None:
@@ -677,11 +681,15 @@ def submit_prediction():
 
     now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
     today = now_est.date()
-    monday = today - timedelta(days=today.weekday())
+    weekday = today.weekday()
+    # If Sunday, week_start = next Monday
+    if weekday == 6:
+        monday = today + timedelta(days=1)
+    else:
+        monday = today - timedelta(days=weekday)
     week_start = monday.isoformat()
 
     # Open Sunday (6) and Monday (0)
-    weekday = today.weekday()
     if weekday not in [6, 0]:
         return jsonify({"error": "Predictions are closed"}), 403
 
