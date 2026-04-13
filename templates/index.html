@@ -3087,6 +3087,8 @@
     }
     if (status === 'revealed') { renderPredictionsRevealed(el); return; }
 
+    if (!myName) { renderPredictionsNamePicker(el); return; }
+
     const myPred = predData && predData.predictions ? predData.predictions.find(p => p.predictor.toLowerCase() === myName.toLowerCase()) : null;
     if (myPred) { renderPredictionsSubmitted(el, myPred); return; }
 
@@ -3135,6 +3137,34 @@
       <button class="pred-submit-btn" id="pred-btn" onclick="submitPrediction()">Lock In My Predictions →</button>
     `;
     setInterval(() => { const cd = document.getElementById('pred-cd'); if(cd) cd.textContent = getMondayCountdown(); }, 60000);
+  }
+
+  function renderPredictionsNamePicker(el) {
+    const allNames = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))].sort() : [];
+    el.innerHTML = `
+      <div class="pred-card">
+        <div class="pred-card-label">Who are you?</div>
+        <div class="pred-card-title">Select your name to view or submit predictions</div>
+        <select id="pred-name-select" class="pred-select">
+          <option value="">— Pick your name —</option>
+          ${allNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+        </select>
+        <div id="pred-name-msg" style="display:none;font-family:'DM Mono',monospace;font-size:0.7rem;padding:0.5rem 0.75rem;margin-top:0.5rem;border-radius:0"></div>
+        <button class="pred-submit-btn" style="margin-top:0.75rem" onclick="confirmPredName()">Continue →</button>
+      </div>
+    `;
+  }
+
+  function confirmPredName() {
+    const sel = document.getElementById('pred-name-select');
+    const name = sel ? sel.value.trim() : '';
+    if (!name) {
+      const msg = document.getElementById('pred-name-msg');
+      if (msg) { msg.textContent = 'Please select your name.'; msg.style.display = 'block'; msg.style.background = '#f8d7da'; msg.style.color = '#721c24'; }
+      return;
+    }
+    localStorage.setItem('tinpact_name', name);
+    renderPredictions();
   }
 
   function renderPredictionsSubmitted(el, myPred) {
@@ -3233,7 +3263,7 @@
 
   async function submitPrediction() {
     const myName = localStorage.getItem('tinpact_name') || '';
-    if (!myName) { showPredMsg('Enter your name in Log a Tin first!', 'error'); return; }
+    if (!myName) { renderPredictions(); return; }
     const winner = document.getElementById('pred-winner').value;
     const total = document.getElementById('pred-total').value;
     if (!winner) { showPredMsg('Please pick a winner.', 'error'); return; }
