@@ -3070,9 +3070,8 @@
     const now = new Date();
     const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
     const day = est.getDay();
-    if (day === 0 || day === 1) return 'open';
-    if (day === 2) return 'revealed';
-    return 'not_open';
+    if (day === 1) return 'open';      // Monday only
+    return 'revealed';                  // Tue–Sun: show locked picks
   }
 
   function getMondayCountdown() {
@@ -3092,12 +3091,8 @@
     const now = new Date();
     const est = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
     const mon = new Date(est);
-    // Sunday (0) -> next Monday; otherwise this Monday
-    if (est.getDay() === 0) {
-      mon.setDate(est.getDate() + 1);
-    } else {
-      mon.setDate(est.getDate() - ((est.getDay() + 6) % 7));
-    }
+    // Always this week's Monday (Sun–Sat all resolve to the same Monday)
+    mon.setDate(est.getDate() - ((est.getDay() + 6) % 7));
     return mon.toISOString().split('T')[0];
   }
 
@@ -3121,16 +3116,29 @@
     } catch(e) { console.error('Predictions load error', e); }
   }
 
+  function renderPrevResultsBanner() {
+    const prev = predData && predData.prev_results;
+    if (!prev) return '';
+    const scores = prev.scores || {};
+    const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+    const medals = ['🥇','🥈','🥉'];
+    const rows = sorted.map(([name,pts],i) =>
+      `<div class="pred-reveal-row"><span class="pred-reveal-name">${medals[i]||''} ${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span></div>`
+    ).join('');
+    return `
+      <div style="background:var(--paper);border:1.5px solid var(--gold);padding:0.85rem 1rem;margin-bottom:1.25rem">
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.25rem">Last week's results · ${prev.week_start}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean);margin-bottom:0.6rem">🏆 ${esc(prev.actual_winner)} won · ${prev.actual_total} total tins</div>
+        ${rows}
+      </div>`;
+  }
+
   function renderPredictions() {
     const status = getPredStatus();
     const myName = localStorage.getItem('tinpact_name') || '';
     const el = document.getElementById('pred-content');
     const seenTooltip = localStorage.getItem('tinpact_pred_tip') === (predData && predData.week_start);
 
-    if (status === 'not_open') {
-      el.innerHTML = `<div class="pred-not-open"><div style="font-size:2rem;margin-bottom:0.5rem">🎯</div><div class="big">Predictions open Sunday</div><div class="sub">Come back then to make your picks for the week.</div></div>`;
-      return;
-    }
     if (status === 'revealed') { renderPredictionsRevealed(el); return; }
 
     if (!myName) { renderPredictionsNamePicker(el); return; }
@@ -3142,9 +3150,10 @@
     const otherNames = allNames.filter(n => n.toLowerCase() !== myName.toLowerCase());
 
     el.innerHTML = `
+      ${renderPrevResultsBanner()}
       ${!seenTooltip ? `<div style="background:var(--ocean);color:var(--cream);padding:1rem;margin-bottom:1rem;border:1.5px solid var(--gold)" id="pred-tip">
         <div style="font-family:'Playfair Display',serif;font-size:1rem;font-style:italic;margin-bottom:0.35rem">Make your predictions 🎯</div>
-        <div style="font-size:0.82rem;line-height:1.5;color:#d0d8dc;margin-bottom:0.65rem">Predict who'll eat the most tins this week and how many we all eat. Vote locks at midnight.</div>
+        <div style="font-size:0.82rem;line-height:1.5;color:#d0d8dc;margin-bottom:0.65rem">Predict who'll eat the most tins this week and how many we all eat. Picks lock at midnight tonight.</div>
         <button style="background:var(--gold);border:none;color:var(--ink);padding:0.4rem 1rem;font-family:'DM Mono',monospace;font-size:0.7rem;cursor:pointer;font-weight:500;letter-spacing:0.05em" onclick="localStorage.setItem('tinpact_pred_tip','${predData.week_start}');document.getElementById('pred-tip').style.display='none'">Got it →</button>
       </div>` : ''}
 
@@ -3247,7 +3256,7 @@
     const results = predData && predData.results ? predData.results : null;
 
     if (!preds.length) {
-      el.innerHTML = `<div class="pred-not-open"><div class="big">No predictions this week</div><div class="sub">Come back Sunday to make your picks!</div></div>`;
+      el.innerHTML = `<div class="pred-not-open"><div class="big">No predictions this week</div><div class="sub">Come back Monday to make your picks!</div></div>`;
       return;
     }
 

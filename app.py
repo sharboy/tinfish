@@ -651,32 +651,34 @@ def slacker_check():
 @app.route('/api/predictions', methods=['GET'])
 def get_predictions():
     today = datetime.now(zoneinfo.ZoneInfo('America/New_York')).date()
-    # If Sunday, week_start = next Monday. If Mon-Sat, week_start = this Monday.
-    if today.weekday() == 6:  # Sunday
-        monday = today + timedelta(days=1)
-    else:
-        monday = today - timedelta(days=today.weekday())
+    # week_start is always this week's Monday (Mon-Sun all point to the same Monday)
+    monday = today - timedelta(days=today.weekday())
     week_start = monday.isoformat()
     predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*&order=timestamp.asc")
     if predictions is None:
         predictions = []
     # Backward-compat: various historical week_start formulas produced different dates.
-    # On Monday, also check adjacent dates so no submissions get stranded.
-    if today.weekday() == 0:  # Monday
-        alt_week_starts = [
-            (monday - timedelta(days=7)).isoformat(),  # old Sunday formula (prev Monday)
-            (monday + timedelta(days=1)).isoformat(),   # +1 day offset from some deploys
-        ]
-        existing_predictors = {p['predictor'].lower() for p in predictions}
-        for alt_start in alt_week_starts:
-            alt_preds = supabase_request('GET', f"predictions?week_start=eq.{alt_start}&select=*&order=timestamp.asc") or []
-            for p in alt_preds:
-                if p['predictor'].lower() not in existing_predictors:
-                    predictions.append(p)
-                    existing_predictors.add(p['predictor'].lower())
+    # Always check adjacent dates so no submissions get stranded regardless of day.
+    alt_week_starts = [
+        (monday - timedelta(days=7)).isoformat(),  # old Sunday formula (prev Monday)
+        (monday + timedelta(days=1)).isoformat(),   # +1 day offset from some deploys
+    ]
+    existing_predictors = {p['predictor'].lower() for p in predictions}
+    for alt_start in alt_week_starts:
+        alt_preds = supabase_request('GET', f"predictions?week_start=eq.{alt_start}&select=*&order=timestamp.asc") or []
+        for p in alt_preds:
+            if p['predictor'].lower() not in existing_predictors:
+                predictions.append(p)
+                existing_predictors.add(p['predictor'].lower())
     results = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=*")
     result = results[0] if results else None
-    return jsonify({"predictions": predictions, "week_start": week_start, "results": result})
+    # On Monday, also return previous week's results so the UI can show last week's winners
+    prev_results = None
+    if today.weekday() == 0:
+        prev_monday = (monday - timedelta(days=7)).isoformat()
+        prev_data = supabase_request('GET', f"prediction_results?week_start=eq.{prev_monday}&select=*")
+        prev_results = prev_data[0] if prev_data else None
+    return jsonify({"predictions": predictions, "week_start": week_start, "results": result, "prev_results": prev_results})
 
 @app.route('/api/predictions', methods=['POST'])
 def submit_prediction():
@@ -696,19 +698,15 @@ def submit_prediction():
     now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
     today = now_est.date()
     weekday = today.weekday()
-    # If Sunday, week_start = next Monday
-    if weekday == 6:
-        monday = today + timedelta(days=1)
-    else:
-        monday = today - timedelta(days=weekday)
+    monday = today - timedelta(days=weekday)
     week_start = monday.isoformat()
 
-    # Open Sunday (6) and Monday (0)
-    if weekday not in [6, 0]:
+    # Open Monday only
+    if weekday != 0:
         return jsonify({"error": "Predictions are closed"}), 403
 
     existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{week_start}&select=id")
-    if not existing and weekday == 0:  # Monday: check all known historical week_start variants
+    if not existing:  # check all known historical week_start variants (Sunday and Monday)
         for alt_start in [(monday - timedelta(days=7)).isoformat(), (monday + timedelta(days=1)).isoformat()]:
             existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{alt_start}&select=id")
             if existing:
@@ -757,8 +755,19 @@ def calculate_predictions():
     actual_winner = max(by_person, key=by_person.get)
     actual_total = sum(by_person.values())
 
-    # Get predictions for that week
-    predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*")
+    # Get predictions for that week, including any stored under historical week_start variants
+    predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*") or []
+    alt_week_starts = [
+        (monday - timedelta(days=7)).isoformat(),  # old Sunday formula (prev Monday)
+        (monday + timedelta(days=1)).isoformat(),   # +1 day offset from some deploys
+    ]
+    seen_predictors = {p['predictor'].lower() for p in predictions}
+    for alt_start in alt_week_starts:
+        alt_preds = supabase_request('GET', f"predictions?week_start=eq.{alt_start}&select=*") or []
+        for p in alt_preds:
+            if p['predictor'].lower() not in seen_predictors:
+                predictions.append(p)
+                seen_predictors.add(p['predictor'].lower())
     if not predictions:
         return jsonify({"error": "No predictions found"}), 404
 
