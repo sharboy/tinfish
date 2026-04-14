@@ -3290,6 +3290,48 @@
     const sortedScores = Object.entries(scoreMap).sort((a,b)=>b[1]-a[1]);
     const allPeople = results && results.actual_individual ? Object.keys(results.actual_individual) : [];
 
+    // Build Q3 grid: rows = predictors, columns = people being predicted
+    const gridCols = [...new Set([
+      ...preds.flatMap(p => Object.keys(p.individual_predictions || {})),
+      ...allPeople
+    ])].sort();
+    const thStyle = `text-align:center;padding:0.35rem 0.5rem;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:600;color:var(--ink);white-space:nowrap;border-bottom:1.5px solid var(--ink)`;
+    const tdName = `padding:0.35rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;color:var(--ocean);white-space:nowrap;border-bottom:1px solid #e8e0d0`;
+    const q3Grid = gridCols.length ? `
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">Q3 · Individual picks (5 pts each)</div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -0.1rem">
+          <table style="border-collapse:collapse;width:100%">
+            <thead><tr>
+              <th style="text-align:left;padding:0.35rem 0.6rem;border-bottom:1.5px solid var(--ink)"></th>
+              ${gridCols.map(col => `<th style="${thStyle}">${esc(col)}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${preds.map(p => {
+                const ind = p.individual_predictions || {};
+                const cells = gridCols.map(col => {
+                  if (p.predictor.toLowerCase() === col.toLowerCase()) {
+                    return `<td style="text-align:center;padding:0.35rem 0.5rem;color:#ccc;font-size:0.75rem;border-bottom:1px solid #e8e0d0">—</td>`;
+                  }
+                  const guess = ind[col] !== undefined ? ind[col] : '?';
+                  const diff = results && results.actual_individual && results.actual_individual[col] !== undefined && typeof guess === 'number'
+                    ? Math.abs(guess - results.actual_individual[col]) : null;
+                  const bg = diff === 0 ? '#d4edda' : diff !== null && diff <= 2 ? '#fff3cd' : '';
+                  const fg = diff === 0 ? '#155724' : diff !== null && diff <= 2 ? '#856404' : 'var(--ink)';
+                  return `<td style="text-align:center;padding:0.35rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.78rem;font-weight:${diff===0?'700':'400'};${bg?`background:${bg};`:''}color:${fg};border-bottom:1px solid #e8e0d0">${guess}</td>`;
+                }).join('');
+                return `<tr><td style="${tdName}">${esc(p.predictor)}</td>${cells}</tr>`;
+              }).join('')}
+              ${results && results.actual_individual ? `
+              <tr style="border-top:2px solid var(--ink)">
+                <td style="padding:0.35rem 0.6rem;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600">Actual</td>
+                ${gridCols.map(col => `<td style="text-align:center;padding:0.35rem 0.5rem;font-family:'Playfair Display',serif;font-size:0.85rem;font-weight:700;color:var(--ocean)">${results.actual_individual[col] ?? '—'}</td>`).join('')}
+              </tr>` : ''}
+            </tbody>
+          </table>
+        </div>
+      </div>` : '';
+
     el.innerHTML = `
       <div style="background:var(--paper);border:1.5px solid var(--ink);padding:0.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center">
         <div>
@@ -3308,15 +3350,7 @@
         ${preds.map(p => { const diff = results ? Math.abs(p.predicted_total - results.actual_total) : null; return `<div class="pred-reveal-row"><span class="pred-reveal-name">${esc(p.predictor)}</span><span class="pred-reveal-val">guessed <span>${p.predicted_total}</span>${results?` — off by ${diff}`:''}</span></div>`; }).join('')}
       </div>
 
-      ${allPeople.map(person => `
-      <div class="pred-reveal-card">
-        <div class="pred-reveal-header">Q3 · ${esc(person)}'s tins? (5 pts)</div>
-        ${preds.filter(p=>p.predictor!==person).map(p => {
-          const guess = p.individual_predictions && p.individual_predictions[person] !== undefined ? p.individual_predictions[person] : '—';
-          const diff = results && typeof guess === 'number' ? Math.abs(guess - results.actual_individual[person]) : null;
-          return `<div class="pred-reveal-row"><span class="pred-reveal-name">${esc(p.predictor)}</span><span class="pred-reveal-val">guessed <span>${guess}</span>${diff!==null?` — off by ${diff}`:''}</span></div>`;
-        }).join('')}
-      </div>`).join('')}
+      ${q3Grid}
 
       ${results ? `
       <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center;margin-bottom:0.75rem">
