@@ -2510,84 +2510,95 @@
       return (hash + n) % arr.length;
     }
 
-    // Praise lines (top 2 only)
-    const praiseLines = [
-      (name, n, streak) => `<strong>${name}</strong> is an absolute unit — ${n} tins deep and showing no signs of stopping. A legend in the making.`,
-      (name, n, streak) => `Somebody get <strong>${name}</strong> a trophy. ${n} tins? That's not eating, that's a lifestyle.`,
-      (name, n, streak) => `<strong>${name}</strong> has entered their tinned fish era and we are HERE for it. ${n} tins and counting.`,
-      (name, n, streak) => `The ocean trembles at the name of <strong>${name}</strong>. ${n} tins consumed. Respectfully.`,
-      (name, n, streak) => `<strong>${name}</strong> could open a tin blindfolded at this point. ${n} tins of pure dedication.`,
-      (name, n, streak) => `Marine biologists fear <strong>${name}</strong>. ${n} tins in and still hungry. Iconic.`,
-      (name, n, streak) => `<strong>${name}</strong> is carrying this group on their back like a very oily, very determined sardine.`,
-      (name, n, streak) => `Scientists have yet to explain how <strong>${name}</strong> fits ${n} tins into their schedule. Respect.`,
-      (name, n, streak) => `${n} tins. <strong>${name}</strong>. The rest of you are taking notes, right?`,
-      (name, n, streak) => `<strong>${name}</strong> looked at the goal and said "that's just a warm-up." ${n} tins in.`,
+    // Today's big eater callout lines
+    const todayLines = [
+      (name, n) => `WAIT. <strong>${name}</strong> just put down <strong>${n} tins TODAY</strong>. Today!! In one day!!! The fish never stood a chance.`,
+      (name, n) => `Breaking news: <strong>${name}</strong> ate <strong>${n} tins in a single day</strong> and has zero remorse. Absolutely feral. We love it.`,
+      (name, n) => `<strong>${n} tins. One day. ${name}.</strong> That is not a snack, that is a lifestyle choice. Chaos. Pure chaos.`,
+      (name, n) => `Someone check on the ocean because <strong>${name}</strong> just consumed <strong>${n} tins TODAY</strong>. Unhinged. Historic. Iconic.`,
+      (name, n) => `<strong>${name}</strong> said "I'm eating <strong>${n} tins today</strong>" and nobody stopped them. The group is shaken. The seas are emptier.`,
+      (name, n) => `<strong>${n} tins in one day</strong> from <strong>${name}</strong>. The Tin Pact did not expect this. The fish did not expect this. Nobody was ready.`,
     ];
 
-    // Streak bonus lines
-    const streakLines = [
-      (name, streak) => `<strong>${name}</strong> is on a <strong>${streak}-day streak</strong>. Locked in. Unbothered. Eating tins.`,
-      (name, streak) => `<strong>${streak} days in a row</strong> from <strong>${name}</strong>. The consistency is actually frightening.`,
-      (name, streak) => `<strong>${name}</strong> hasn't missed a day in <strong>${streak} days</strong>. The fish have accepted their fate.`,
-      (name, streak) => `Day <strong>${streak}</strong> of <strong>${name}</strong>'s unbroken tin streak. We are witnessing history.`,
-      (name, streak) => `<strong>${name}</strong> is on a <strong>${streak}-day run</strong>. At this point it's not a challenge, it's a calling.`,
-      (name, streak) => `<strong>${streak} consecutive days</strong>. <strong>${name}</strong> didn't come to play. They came to eat fish.`,
+    // Praise lines (top performers) — streak woven in
+    const praiseLines = [
+      (name, n, streak) => `<strong>${name}</strong> is an absolute menace — <strong>${n} tins</strong> in and not even breathing hard.` + (streak >= 3 ? ` ${streak}-day streak. Someone stop them.` : ' A legend in the making.'),
+      (name, n, streak) => `Somebody call the coast guard. <strong>${name}</strong> has eaten <strong>${n} tins</strong> and still has that look in their eye.` + (streak >= 3 ? ` ${streak} days straight. Terrifying.` : ''),
+      (name, n, streak) => `<strong>${name}</strong> looked at the goal and said "that's cute." <strong>${n} tins.</strong>` + (streak >= 3 ? ` ${streak}-day streak. Unreal.` : ' The ocean weeps with joy.'),
+      (name, n, streak) => `The leaderboard has a name at the top and that name is <strong>${name}</strong>. <strong>${n} tins.</strong>` + (streak >= 3 ? ` ${streak} days running. Lock them in.` : ' Bow down.'),
+      (name, n, streak) => `Marine biologists fear <strong>${name}</strong>. <strong>${n} tins</strong> consumed.` + (streak >= 3 ? ` ${streak}-day streak. The ecosystem is in shambles.` : ' Iconic. Unmatched.'),
+      (name, n, streak) => `<strong>${name}</strong> is carrying this group like a sardine carries omega-3s. <strong>${n} tins.</strong>` + (streak >= 3 ? ` ${streak} days without blinking.` : ' The rest of you: embarrassing.'),
+      (name, n, streak) => `${n} tins. <strong>${name}</strong>. The rest of you are taking notes, right?` + (streak >= 3 ? ` A ${streak}-day streak on top of that. Get out.` : ''),
+      (name, n, streak) => `<strong>${name}</strong> has eaten <strong>${n} tins</strong> and their energy is frankly intimidating.` + (streak >= 3 ? ` ${streak} days in a row. We are not worthy.` : ' The fish respect it.'),
     ];
 
     // Missed days scold lines
     const missedLines = [
-      (name, days) => `<strong>${name}</strong> hasn't logged a tin in <strong>${days} days</strong>. The fish are confused. Are you okay?`,
-      (name, days) => `<strong>${days} days</strong> of silence from <strong>${name}</strong>. The leaderboard has a ${name}-shaped hole in it.`,
-      (name, days) => `<strong>${name}</strong>, it's been <strong>${days} days</strong>. The sardines are starting to think you don't like them.`,
-      (name, days) => `<strong>${days} days</strong>, <strong>${name}</strong>. The tins are just sitting there. Waiting. Judging.`,
-      (name, days) => `The group has covered for <strong>${name}</strong> for <strong>${days} days</strong>. Time to pull your weight. In tins.`,
-      (name, days) => `<strong>${name}</strong> went <strong>${days} days</strong> without logging. The sardines filed a missing persons report.`,
+      (name, days) => `<strong>${name}</strong> hasn't logged a tin in <strong>${days} days</strong>. The sardines are filing a restraining order. Against themselves, to keep them away from you.`,
+      (name, days) => `<strong>${days} days</strong> of nothing from <strong>${name}</strong>. The leaderboard has a ${name}-shaped hole in it. It's getting wider.`,
+      (name, days) => `<strong>${name}</strong>, it's been <strong>${days} days</strong>. The tins are just sitting there. They're not scared of you anymore. That's bad.`,
+      (name, days) => `<strong>${days} days</strong>, <strong>${name}</strong>. The group has been covering for you. They're tired. The fish are tired. We're all tired.`,
+      (name, days) => `<strong>${name}</strong> went <strong>${days} days</strong> without logging. A ghost has done more for this group. Literally a ghost.`,
+      (name, days) => `<strong>${days} days</strong> since <strong>${name}</strong> last showed up. At this point the mackerel have moved on. Have you?`,
     ];
 
-    // Regular scold lines
+    // Regular scold lines (bottom, but recently active)
     const scoldLines = [
-      (name, n) => `<strong>${name}</strong> has eaten ${n} tin${n!==1?'s':''}. The fish are literally begging to be eaten and yet.`,
-      (name, n) => `${n} tin${n!==1?'s':''}. That's it. That's all <strong>${name}</strong> has contributed. The group is disappointed.`,
-      (name, n) => `<strong>${name}</strong>, the tins aren't going to eat themselves. ${n} is not a number to be proud of.`,
-      (name, n) => `Somewhere, a sardine is waiting for <strong>${name}</strong> to do their part. ${n} tin${n!==1?'s':''} so far. Tragic.`,
-      (name, n) => `${n} tin${n!==1?'s':''}. <strong>${name}</strong>, are you even trying? The mackerel are watching.`,
-      (name, n) => `<strong>${name}</strong>'s contribution of ${n} tin${n!==1?'s':''} has been noted. And judged. Mostly judged.`,
-      (name, n) => `At this rate, <strong>${name}</strong> will hit the goal sometime in 2031. ${n} tin${n!==1?'s':''} is embarrassing.`,
-      (name, n) => `<strong>${name}</strong>. Buddy. Pal. ${n} tin${n!==1?'s':''}? The group has a goal. You have excuses.`,
-      (name, n) => `The herring have feelings too, <strong>${name}</strong>, and they're feeling neglected. ${n} tin${n!==1?'s':''}.`,
-      (name, n) => `A ghost has eaten more tins than <strong>${name}</strong> this month. ${n}. Think about that.`,
+      (name, n) => `<strong>${name}</strong> has logged <strong>${n} tin${n!==1?'s':''}</strong>. The fish are literally begging to be eaten and yet. AND YET.`,
+      (name, n) => `<strong>${n} tin${n!==1?'s':''}</strong>. That is the full extent of <strong>${name}</strong>'s contribution. The group has seen your number. They're not impressed.`,
+      (name, n) => `<strong>${name}</strong>, buddy — <strong>${n} tin${n!==1?'s':''}?</strong> The goal isn't going to hit itself. Neither are you, apparently.`,
+      (name, n) => `At this rate, <strong>${name}</strong> finishes the goal sometime around never. <strong>${n} tin${n!==1?'s':''}.</strong> Tragic stuff.`,
+      (name, n) => `<strong>${name}</strong>'s <strong>${n} tin${n!==1?'s':''}</strong> ha${n!==1?'ve':\'s'} been noted. Filed under: could do better. Way better. Embarrassingly better.`,
+      (name, n) => `A retired goldfish has more commitment than <strong>${name}</strong> right now. <strong>${n} tin${n!==1?'s':''}.</strong> Come on.`,
+      (name, n) => `<strong>${name}</strong>. <strong>${n} tin${n!==1?'s':''}.</strong> That's it. That's the whole tweet. Pathetic.`,
+      (name, n) => `The herring are personally offended by <strong>${name}</strong>'s <strong>${n} tin${n!==1?'s':''}</strong>. We don't blame them.`,
     ];
 
     const rows = [];
+    const MAX_ROWS = 7;
 
-    sorted.forEach(([name, tins], i) => {
-      const streak = getStreak(name);
-      const missed = daysSince(name);
-      const isTop2 = i < 2;
+    // === TODAY'S HIGHLIGHT ===
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayByPerson = {};
+    entries.forEach(e => {
+      if (e.date && e.date.slice(0, 10) === todayStr) {
+        todayByPerson[e.name] = (todayByPerson[e.name] || 0) + e.tins;
+      }
+    });
+    const todayBiggest = Object.entries(todayByPerson).sort((a,b) => b[1]-a[1])[0];
+    if (todayBiggest && todayBiggest[1] >= 2) {
+      const [tName, tTins] = todayBiggest;
+      const tidx = seedIndex(tName, tTins, todayLines);
+      rows.push({ emoji: '🤯', text: todayLines[tidx](tName, tTins), scold: false, bonus: true });
+    }
 
-      if (isTop2 && tins > 0) {
-        // Praise
+    // === PRAISE (top 2) ===
+    sorted.slice(0, 2).forEach(([name, tins], i) => {
+      if (tins > 0 && rows.length < MAX_ROWS) {
+        const streak = getStreak(name);
         const idx = seedIndex(name, tins, praiseLines);
         rows.push({ emoji: ['🔥','👑','💪','⭐','🏅','🎖️'][idx % 6], text: praiseLines[idx](name, tins, streak), scold: false });
-        // Add streak bonus if 3+ days
-        if (streak >= 3) {
-          const sidx = seedIndex(name, streak, streakLines);
-          rows.push({ emoji: '🔥', text: streakLines[sidx](name, streak), scold: false, bonus: true });
-        }
+      }
+    });
+
+    // === SCOLDS (everyone else, worst offenders first) ===
+    const scoldCandidates = sorted.slice(2).sort((a, b) => {
+      const dA = daysSince(a[0]);
+      const dB = daysSince(b[0]);
+      if (dA >= 2 && dB >= 2) return dB - dA;
+      if (dA >= 2) return -1;
+      if (dB >= 2) return 1;
+      return a[1] - b[1]; // fewest tins first
+    });
+    scoldCandidates.forEach(([name, tins]) => {
+      if (rows.length >= MAX_ROWS) return;
+      const missed = daysSince(name);
+      if (missed >= 2) {
+        const idx = seedIndex(name, missed, missedLines);
+        rows.push({ emoji: ['😴','👻','🚨','😤','💀','🫵'][idx % 6], text: missedLines[idx](name, missed), scold: true });
       } else {
-        // Missed days takes priority
-        if (missed >= 2) {
-          const idx = seedIndex(name, missed, missedLines);
-          rows.push({ emoji: ['😴','👻','🚨','😤','💀','🫵'][idx % 6], text: missedLines[idx](name, missed), scold: true });
-        } else {
-          const idx = seedIndex(name, tins, scoldLines);
-          rows.push({ emoji: ['😤','👀','🫵','😬','🚨','😒'][idx % 6], text: scoldLines[idx](name, tins), scold: true });
-          // Still give streak credit even to scolds
-          if (streak >= 3) {
-            const sidx = seedIndex(name, streak, streakLines);
-            rows.push({ emoji: '📈', text: streakLines[sidx](name, streak) + ' But still not in the top 2. Try harder.', scold: false, bonus: true });
-          }
-        }
+        const idx = seedIndex(name, tins, scoldLines);
+        rows.push({ emoji: ['😤','👀','🫵','😬','🚨','😒'][idx % 6], text: scoldLines[idx](name, tins), scold: true });
       }
     });
 
