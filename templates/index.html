@@ -1392,6 +1392,31 @@
   <div id="gate-error">Wrong password. Try again.</div>
 </div>
 
+<script>
+  // Password gate — defined early so a JS error later can't break it
+  function checkPassword() {
+    const val = document.getElementById('gate-input').value;
+    if (val === 'fishtins') {
+      localStorage.setItem('tinpact_auth', '1');
+      document.getElementById('password-gate').style.display = 'none';
+      if (typeof afterAuth === 'function') afterAuth();
+    } else {
+      document.getElementById('gate-error').style.display = 'block';
+      document.getElementById('gate-input').value = '';
+      document.getElementById('gate-input').focus();
+    }
+  }
+  if (localStorage.getItem('tinpact_auth') === '1') {
+    document.getElementById('password-gate').style.display = 'none';
+    // afterAuth runs later once the main script defines it
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof afterAuth === 'function') afterAuth();
+    });
+  } else {
+    setTimeout(() => document.getElementById('gate-input').focus(), 100);
+  }
+</script>
+
 <header>
   <h1><span id="fish-btn" onclick="toggleMusic()" style="cursor:pointer;user-select:none;-webkit-user-select:none">🐟</span> Tin Pact</h1>
   <p>A Collective Tinned Fish Tracker</p>
@@ -2350,7 +2375,7 @@
   }
   // Splash shown via afterAuth() only
 
-  // Password gate
+  // Password gate — afterAuth() called by early <script> above once this is defined
   function afterAuth() {
     // Show splash if not seen this version
     const splashEl = document.getElementById('splash');
@@ -2362,25 +2387,9 @@
     if (window._annReadyToShow) setTimeout(() => window._annReadyToShow(), 1200);
   }
 
-  function checkPassword() {
-    const val = document.getElementById('gate-input').value;
-    if (val === 'fishtins') {
-      localStorage.setItem('tinpact_auth', '1');
-      document.getElementById('password-gate').style.display = 'none';
-      afterAuth();
-    } else {
-      document.getElementById('gate-error').style.display = 'block';
-      document.getElementById('gate-input').value = '';
-      document.getElementById('gate-input').focus();
-    }
-  }
-
-  // Check auth on load
+  // If already authed (gate hidden by early script), run afterAuth now
   if (localStorage.getItem('tinpact_auth') === '1') {
-    document.getElementById('password-gate').style.display = 'none';
     afterAuth();
-  } else {
-    setTimeout(() => document.getElementById('gate-input').focus(), 100);
   }
 
 
