@@ -2045,38 +2045,40 @@
     const tins = parseInt(document.getElementById('f-tins').value) || 1;
     const maxSelect = tins;
     const custom = document.getElementById('f-type-custom');
+    const countForType = selectedTypes.filter(t => t === type).length;
 
-    if (btn.classList.contains('selected')) {
-      // Deselect
-      selectedTypes = selectedTypes.filter(t => t !== type);
-      btn.classList.remove('selected');
-      if (type === 'Other') { custom.style.display = 'none'; custom.value = ''; }
+    if (countForType > 0 && selectedTypes.length >= maxSelect) {
+      // At limit and already selected — remove one instance
+      const idx = selectedTypes.lastIndexOf(type);
+      selectedTypes.splice(idx, 1);
+      if (type === 'Other' && countForType === 1) { custom.style.display = 'none'; custom.value = ''; }
+    } else if (selectedTypes.length < maxSelect) {
+      // Room to add
+      selectedTypes.push(type);
+      if (type === 'Other' && countForType === 0) { custom.style.display = 'block'; custom.focus(); }
     } else {
-      // Select — check limit
-      if (selectedTypes.length >= maxSelect) {
-        // Deselect the first one to make room
-        const first = selectedTypes.shift();
-        const firstBtn = document.querySelector(`.type-pill[data-type="${first}"]`);
-        if (firstBtn) firstBtn.classList.remove('selected');
+      // At limit, this type not yet selected — bump oldest
+      const first = selectedTypes.shift();
+      const firstRemainingCount = selectedTypes.filter(t => t === first).length;
+      if (firstRemainingCount === 0) {
         if (first === 'Other') { custom.style.display = 'none'; custom.value = ''; }
       }
       selectedTypes.push(type);
-      btn.classList.add('selected');
-      if (type === 'Other') { custom.style.display = 'block'; custom.focus(); }
+      if (type === 'Other' && countForType === 0) { custom.style.display = 'block'; custom.focus(); }
     }
 
-    // Update disabled state
-    updateTypePills(maxSelect);
+    updateTypePillCounts(maxSelect);
     updateTypeHint(maxSelect);
   }
 
-  function updateTypePills(max) {
+  function updateTypePillCounts(max) {
     document.querySelectorAll('.type-pill').forEach(p => {
-      if (selectedTypes.length >= max && !p.classList.contains('selected')) {
-        p.classList.add('disabled');
-      } else {
-        p.classList.remove('disabled');
-      }
+      const type = p.dataset.type;
+      const count = selectedTypes.filter(t => t === type).length;
+      if (!p.dataset.label) p.dataset.label = p.textContent.trim();
+      p.textContent = count > 1 ? `${p.dataset.label} ×${count}` : p.dataset.label;
+      p.classList.toggle('selected', count > 0);
+      p.classList.toggle('disabled', selectedTypes.length >= max && count === 0);
     });
   }
 
@@ -2085,22 +2087,19 @@
     if (max === 1) { hint.textContent = ''; return; }
     const remaining = max - selectedTypes.length;
     if (remaining > 0) {
-      hint.textContent = `Select up to ${max} types — ${remaining} more`;
+      hint.textContent = `${selectedTypes.length} of ${max} selected — ${remaining} more`;
     } else {
-      hint.textContent = `${max} type${max!==1?'s':''} selected`;
+      hint.textContent = `All ${max} tin${max!==1?'s':''} assigned`;
     }
   }
 
   // Update pill state when tins count changes
   document.getElementById('f-tins').addEventListener('input', function() {
     const max = parseInt(this.value) || 1;
-    // If more selected than allowed, trim
     while (selectedTypes.length > max) {
-      const removed = selectedTypes.pop();
-      const btn = document.querySelector(`.type-pill[data-type="${removed}"]`);
-      if (btn) btn.classList.remove('selected');
+      selectedTypes.pop();
     }
-    updateTypePills(max);
+    updateTypePillCounts(max);
     updateTypeHint(max);
   });
 
@@ -2251,7 +2250,7 @@
         document.getElementById('f-type-custom').value = '';
         // Reset type pills
         selectedTypes = [];
-        document.querySelectorAll('.type-pill').forEach(p => { p.classList.remove('selected','disabled'); });
+        document.querySelectorAll('.type-pill').forEach(p => { p.classList.remove('selected','disabled'); if (p.dataset.label) p.textContent = p.dataset.label; });
         document.getElementById('type-hint').textContent = '';
         document.getElementById('f-image').value = '';
         document.getElementById('preview-img').style.display = 'none';
