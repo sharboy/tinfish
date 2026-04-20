@@ -785,7 +785,8 @@ def calculate_predictions():
     for e in entries:
         by_person[e['name']] = by_person.get(e['name'], 0) + e['tins']
     actual_winner = max(by_person, key=by_person.get)
-    actual_total = sum(by_person.values())
+    actual_winner_tins = by_person[actual_winner]  # winner's personal tin count
+    actual_total = sum(by_person.values())          # group total (used for Q2 scoring)
 
     # Get predictions for that week, including any stored under historical week_start variants
     predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*") or []
@@ -851,7 +852,8 @@ def calculate_predictions():
         "id": uuid.uuid4().hex,
         "week_start": week_start,
         "actual_winner": actual_winner,
-        "actual_total": actual_total,
+        "actual_total": actual_winner_tins,  # winner's personal tins
+        "actual_group_total": actual_total,  # group total for reference
         "actual_individual": by_person,
         "scores": scores,
     }
@@ -859,11 +861,11 @@ def calculate_predictions():
     # Upsert result
     existing = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=id")
     if existing:
-        supabase_request('PATCH', f"prediction_results?week_start=eq.{week_start}", {"actual_winner": actual_winner, "actual_total": actual_total, "actual_individual": by_person, "scores": scores})
+        supabase_request('PATCH', f"prediction_results?week_start=eq.{week_start}", {"actual_winner": actual_winner, "actual_total": actual_winner_tins, "actual_individual": by_person, "scores": scores})
     else:
         supabase_request('POST', 'prediction_results', result_row)
 
-    return jsonify({"success": True, "week_start": week_start, "actual_winner": actual_winner, "actual_total": actual_total, "scores": scores})
+    return jsonify({"success": True, "week_start": week_start, "actual_winner": actual_winner, "actual_total": actual_winner_tins, "scores": scores})
 
 
 if __name__ == '__main__':
