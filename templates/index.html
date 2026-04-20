@@ -2204,6 +2204,18 @@
     "We genuinely thought you'd quit. The jury is still out.",
     "Your spot on the leaderboard has gone cold. Like an uneaten tin.",
     "The mackerel filed a missing persons report. We told them not to bother.",
+    "Even the brisling have given up on you.",
+    "This is embarrassing. For you. We're fine.",
+    "You have the consistency of a wet paper bag.",
+    "A tin of nothing. That's what you've contributed.",
+    "Truly inspiring how little you care.",
+    "The kelp puts in more effort than you do.",
+    "You couldn't even disappoint us. We'd stopped expecting anything.",
+    "At this point the leaderboard is just taunting you by existing.",
+    "We asked around. Nobody noticed you were gone. Make of that what you will.",
+    "Your dedication is genuinely breathtaking. In a bad way.",
+    "The fish are embarrassed for you and they live in tins.",
+    "We've seen better comebacks from expired sardines.",
   ];
   let _shameTimer = null;
   let _shamePending = null; // FormData to submit after shame
@@ -2237,9 +2249,20 @@
     fillEl.style.width = '0%';
     cdEl.textContent = 'Please wait…';
 
-    // Pick a starting message
-    let msgIdx = Math.floor(Math.random() * SHAME_MESSAGES.length);
-    msgEl.textContent = SHAME_MESSAGES[msgIdx];
+    // Pick messages without repeating — shuffle a copy of indices
+    const _shamePool = SHAME_MESSAGES.map((_, i) => i).sort(() => Math.random() - 0.5);
+    let _shamePoolIdx = 0;
+    const nextShameMsg = () => {
+      if (_shamePoolIdx >= _shamePool.length) {
+        // Reshuffle when exhausted, avoid leading with last shown
+        const last = _shamePool[_shamePool.length - 1];
+        _shamePool.sort(() => Math.random() - 0.5);
+        if (_shamePool[0] === last) { _shamePool.push(_shamePool.shift()); }
+        _shamePoolIdx = 0;
+      }
+      return SHAME_MESSAGES[_shamePool[_shamePoolIdx++]];
+    };
+    msgEl.textContent = nextShameMsg();
 
     overlay.classList.add('open');
 
@@ -2248,8 +2271,7 @@
     let msgInterval = setInterval(() => {
       msgEl.style.opacity = '0';
       setTimeout(() => {
-        msgIdx = (msgIdx + 1) % SHAME_MESSAGES.length;
-        msgEl.textContent = SHAME_MESSAGES[msgIdx];
+        msgEl.textContent = nextShameMsg();
         msgEl.style.opacity = '1';
       }, 400);
     }, 2500);
