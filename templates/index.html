@@ -3435,13 +3435,20 @@
         <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.85rem">Season Standings</div>
 
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
-          ${sortedTotals.map(([name,pts],i) => `
-            <div style="background:var(--paper);border:1.5px solid ${i===0?'var(--gold)':'var(--ink)'};padding:0.5rem 0.85rem;min-width:90px">
-              <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">${medals[i]||`#${i+1}`}</div>
-              <div style="font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;color:var(--ocean)">${esc(name)}</div>
-              <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:${i===0?'var(--gold)':'var(--ink)'}">${pts} pts</div>
-            </div>
-          `).join('')}
+          ${(() => {
+            // Dense ranking: ties share the same rank
+            let rank = 1;
+            return sortedTotals.map(([name,pts], i) => {
+              if (i > 0 && pts < sortedTotals[i-1][1]) rank = i + 1;
+              const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`#${rank}`;
+              const isFirst = rank === 1;
+              return `<div style="background:var(--paper);border:1.5px solid ${isFirst?'var(--gold)':'var(--ink)'};padding:0.5rem 0.85rem;min-width:90px">
+                <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">${medal}</div>
+                <div style="font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;color:var(--ocean)">${esc(name)}</div>
+                <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:${isFirst?'var(--gold)':'var(--ink)'}">${pts} pts</div>
+              </div>`;
+            }).join('');
+          })()}
         </div>
 
         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
@@ -3639,10 +3646,18 @@
   function renderResultsBreakdown(preds, results, weekStart) {
     if (!results) return '';
     const { q1map, q2map, q3map, q3detail, sortedScores } = buildScoreBreakdown(preds, results);
-    const medals = ['🥇','🥈','🥉'];
-    const scoreRows = sortedScores.map(([name,pts],i) =>
-      `<div class="pred-reveal-row"><span class="pred-reveal-name">${medals[i]||''} ${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span></div>`
-    ).join('');
+    // Dense ranking for ties
+    const getRank = (scores, i) => {
+      if (i === 0) return 1;
+      let rank = 1;
+      for (let j = 0; j < i; j++) if (scores[j][1] > scores[i][1]) rank++;
+      return rank;
+    };
+    const getMedal = (rank) => rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`#${rank}`;
+    const scoreRows = sortedScores.map(([name,pts],i) => {
+      const rank = getRank(sortedScores, i);
+      return `<div class="pred-reveal-row"><span class="pred-reveal-name">${getMedal(rank)} ${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span></div>`;
+    }).join('');
     const breakdownRows = sortedScores.map(([name], i) => {
       const q1=q1map[name]||0, q2=q2map[name]||0, q3=q3map[name]||0, total=q1+q2+q3;
       const pred = preds.find(p=>p.predictor===name);
