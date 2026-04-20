@@ -1476,6 +1476,12 @@
   <div class="since-progress"><div class="since-progress-fill" id="since-progress-fill"></div></div>
 </div>
 
+<!-- RESULTS ANIMATION OVERLAY -->
+<div id="results-anim-wrap" style="display:none;position:fixed;inset:0;z-index:990;background:#060d11">
+  <canvas id="results-anim-canvas" style="display:block;width:100%;height:100%"></canvas>
+  <button class="pred-anim-skip" onclick="skipResultsAnim()">SKIP →</button>
+</div>
+
 <!-- PREDICTION REMINDER BANNER -->
 <div id="pred-reminder-banner" onclick="showPage('predictions');initPredictions();dismissPredReminder()">
   <div class="pred-reminder-inner">
@@ -1583,10 +1589,6 @@
       <div id="pred-anim-wrap" class="pred-anim-stage" style="height:clamp(160px,40vw,220px)">
         <canvas id="pred-anim-canvas"></canvas>
         <button class="pred-anim-skip" onclick="skipPredAnim()">SKIP →</button>
-      </div>
-      <div id="results-anim-wrap" class="pred-anim-stage" style="display:none;height:clamp(300px,80vw,440px)">
-        <canvas id="results-anim-canvas"></canvas>
-        <button class="pred-anim-skip" onclick="skipResultsAnim()">SKIP →</button>
       </div>
       <div class="chronicle-inner">
         <div class="section-title" style="margin-bottom:1rem">🎯 Predictions</div>
@@ -1998,6 +2000,8 @@
     };
   })();
 
+  let resultsAnimChecked = false;
+
   async function loadData() {
     try {
       const res = await fetch('/api/data');
@@ -2011,6 +2015,24 @@
       // Load reactions
       await loadReactions();
       renderAll();
+      // On first load, fetch predictions to check for results animation
+      if (!resultsAnimChecked) {
+        resultsAnimChecked = true;
+        if (!predData) {
+          try {
+            const pr = await fetch('/api/predictions');
+            predData = await pr.json();
+          } catch(e) {}
+        }
+        if (predData && predData.prev_results) {
+          const resultsKey = 'tinpact_results_anim_' + predData.prev_results.week_start;
+          if (!localStorage.getItem(resultsKey)) {
+            localStorage.setItem(resultsKey, '1');
+            document.getElementById('results-anim-wrap').style.display = 'block';
+            startResultsAnim(predData.prev_results);
+          }
+        }
+      }
     } catch(e) {}
   }
 
@@ -3336,19 +3358,7 @@
   async function initPredictions() {
     await loadPredictions();
 
-    // Show results animation on first visit since they were calculated (any day of week)
-    if (predData && predData.prev_results) {
-      const resultsKey = 'tinpact_results_anim_' + predData.prev_results.week_start;
-      if (!localStorage.getItem(resultsKey)) {
-        localStorage.setItem(resultsKey, '1');
-        document.getElementById('pred-anim-wrap').style.display = 'none';
-        document.getElementById('results-anim-wrap').style.display = 'block';
-        startResultsAnim(predData.prev_results);
-        return;
-      }
-    }
-
-    // Otherwise show the chase animation (first visit of week)
+    // Show the chase animation (first visit of week)
     const weekKey = 'tinpact_pred_anim_' + getWeekStart();
     if (!localStorage.getItem(weekKey)) {
       document.getElementById('pred-anim-wrap').style.display = 'block';
@@ -3484,8 +3494,10 @@
     const allNames = appData && appData.entries ? [...new Set(appData.entries.map(e => e.name))].sort() : [];
     const otherNames = allNames.filter(n => n.toLowerCase() !== myName.toLowerCase());
 
+    const prevPreds = predData && predData.prev_predictions ? predData.prev_predictions : [];
+    const prevResults = predData && predData.prev_results ? predData.prev_results : null;
+
     el.innerHTML = `
-      ${renderPrevResultsBanner()}
       ${!seenTooltip ? `<div style="background:var(--ocean);color:var(--cream);padding:1rem;margin-bottom:1rem;border:1.5px solid var(--gold)" id="pred-tip">
         <div style="font-family:'Playfair Display',serif;font-size:1rem;font-style:italic;margin-bottom:0.35rem">Make your predictions 🎯</div>
         <div style="font-size:0.82rem;line-height:1.5;color:#d0d8dc;margin-bottom:0.65rem">Predict who'll eat the most tins this week and how many we all eat. Picks lock at midnight tonight.</div>
@@ -3526,6 +3538,7 @@
 
       ${renderPredSubmissionStatus()}
       <button class="pred-submit-btn" id="pred-btn" onclick="submitPrediction()">Lock In My Predictions →</button>
+      ${renderResultsBreakdown(prevPreds, prevResults)}
     `;
     setInterval(() => { const cd = document.getElementById('pred-cd'); if(cd) cd.textContent = getMondayCountdown(); }, 60000);
   }
@@ -3572,6 +3585,8 @@
 
   function renderPredictionsSubmitted(el, myPred) {
     const indPreds = myPred.individual_predictions || {};
+    const prevPreds = predData && predData.prev_predictions ? predData.prev_predictions : [];
+    const prevResults = predData && predData.prev_results ? predData.prev_results : null;
     el.innerHTML = `
       <div style="background:#d4edda;border:1px solid #c3e6cb;color:#155724;padding:0.65rem 0.85rem;font-family:'DM Mono',monospace;font-size:0.72rem;margin-bottom:1rem;text-align:center">Your predictions are locked in! 🔒</div>
       <div class="pred-locked">Come back Tuesday morning to see everyone's picks.</div>
@@ -3583,33 +3598,19 @@
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:center">Predictions cannot be changed once submitted.</div>
       ${renderPredSubmissionStatus()}
+      ${renderResultsBreakdown(prevPreds, prevResults)}
     `;
   }
 
-  function renderPredictionsRevealed(el) {
-    const preds = predData && predData.predictions ? predData.predictions : [];
-    const results = predData && predData.results ? predData.results : null;
-
-    if (!preds.length) {
-      el.innerHTML = `<div class="pred-not-open"><div class="big">No predictions this week</div><div class="sub">Come back Monday to make your picks!</div></div>`;
-      return;
-    }
-
-    // Calculate scores with per-question breakdown
+  function buildScoreBreakdown(preds, results) {
     let q1map = {}, q2map = {}, q3map = {}, q3detail = {};
     preds.forEach(p => { q1map[p.predictor] = 0; q2map[p.predictor] = 0; q3map[p.predictor] = 0; q3detail[p.predictor] = {}; });
-
     if (results) {
-      // Q1: 15pts for correct winner
       preds.forEach(p => { if (p.predicted_winner === results.actual_winner) q1map[p.predictor] = 15; });
-
-      // Q2: 15/3/1 closest group total
       const q2ranked = [...preds].map(p => ({name:p.predictor, diff:Math.abs(p.predicted_total - results.actual_total)})).sort((a,b)=>a.diff-b.diff);
       const q2pts = [15,3,1];
       let i=0;
       while(i<q2ranked.length){let j=i;while(j<q2ranked.length&&q2ranked[j].diff===q2ranked[i].diff)j++;const award=q2pts[i]||0;for(let k=i;k<j;k++)q2map[q2ranked[k].name]=(q2map[q2ranked[k].name]||0)+award;i=j;}
-
-      // Q3: 5/3/1 per person
       const allPeople = results.actual_individual ? Object.keys(results.actual_individual) : [];
       allPeople.forEach(person => {
         const actual = results.actual_individual[person];
@@ -3621,10 +3622,85 @@
         while(ii<guesses.length){let jj=ii;while(jj<guesses.length&&guesses[jj].diff===guesses[ii].diff)jj++;const award=q3pts[ii]||0;for(let kk=ii;kk<jj;kk++){q3map[guesses[kk].name]=(q3map[guesses[kk].name]||0)+award;q3detail[guesses[kk].name][person]=award;}ii=jj;}
       });
     }
-
     const scoreMap = {};
     preds.forEach(p => { scoreMap[p.predictor] = (q1map[p.predictor]||0)+(q2map[p.predictor]||0)+(q3map[p.predictor]||0); });
     const sortedScores = Object.entries(scoreMap).sort((a,b)=>b[1]-a[1]);
+    return { q1map, q2map, q3map, q3detail, scoreMap, sortedScores };
+  }
+
+  function renderResultsBreakdown(preds, results, weekStart) {
+    if (!results) return '';
+    const { q1map, q2map, q3map, q3detail, sortedScores } = buildScoreBreakdown(preds, results);
+    const medals = ['🥇','🥈','🥉'];
+    const scoreRows = sortedScores.map(([name,pts],i) =>
+      `<div class="pred-reveal-row"><span class="pred-reveal-name">${medals[i]||''} ${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span></div>`
+    ).join('');
+    const breakdownRows = sortedScores.map(([name], i) => {
+      const q1=q1map[name]||0, q2=q2map[name]||0, q3=q3map[name]||0, total=q1+q2+q3;
+      const pred = preds.find(p=>p.predictor===name);
+      const q1note = pred ? (q1>0 ? `✅ ${esc(pred.predicted_winner)}` : `❌ ${esc(pred.predicted_winner)}`) : '—';
+      const q2diff = pred && results ? Math.abs(pred.predicted_total - results.actual_total) : null;
+      const q2note = pred ? `${pred.predicted_total} (off ${q2diff??'?'})` : '—';
+      const q3notes = Object.entries(q3detail[name]||{}).map(([person,pts])=>`${esc(person)}: +${pts}`).join(', ') || '—';
+      return `<tr>
+        <td style="padding:0.3rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;color:var(--ocean);border-bottom:1px solid #e8e0d0;white-space:nowrap">${medals[i]||''} ${esc(name)}</td>
+        <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q1>0?'var(--ocean)':'var(--muted)'}">${q1}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);white-space:nowrap">${q1note}</div>
+        </td>
+        <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q2>0?'var(--ocean)':'var(--muted)'}">${q2}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);white-space:nowrap">${q2note}</div>
+        </td>
+        <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+          <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q3>0?'var(--ocean)':'var(--muted)'}">${q3}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted)">${q3notes}</div>
+        </td>
+        <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+          <div style="font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:${total>0?'var(--gold)':'var(--muted)'}">${total}</div>
+        </td>
+      </tr>`;
+    }).join('');
+    const thStyle = `text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)`;
+    return `
+      <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center;margin-bottom:0.75rem">
+        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Last week · ${weekStart||results.week_start||''}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">${esc(results.actual_winner)} won · ${results.actual_total} total tins</div>
+      </div>
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">🏆 Last week's scores</div>
+        ${scoreRows}
+      </div>
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">📊 Points breakdown</div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <table style="border-collapse:collapse;width:100%">
+            <thead><tr>
+              <th style="text-align:left;padding:0.3rem 0.6rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)">Predictor</th>
+              <th style="${thStyle}" title="Who eats most? (15 pts)">Q1</th>
+              <th style="${thStyle}" title="Group total? (15 pts)">Q2</th>
+              <th style="${thStyle}" title="Individual picks (5 pts each)">Q3</th>
+              <th style="${thStyle}">Total</th>
+            </tr></thead>
+            <tbody>${breakdownRows}</tbody>
+          </table>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.5rem;line-height:1.5">
+          Q1: correct winner = 15 pts &nbsp;·&nbsp; Q2: 15/3/1 for closest total &nbsp;·&nbsp; Q3: 5/3/1 per person closest guess
+        </div>
+      </div>`;
+  }
+
+  function renderPredictionsRevealed(el) {
+    const preds = predData && predData.predictions ? predData.predictions : [];
+    const results = predData && predData.results ? predData.results : null;
+
+    if (!preds.length) {
+      el.innerHTML = `<div class="pred-not-open"><div class="big">No predictions this week</div><div class="sub">Come back Monday to make your picks!</div></div>`;
+      return;
+    }
+
+    const { q1map, q2map, q3map, q3detail, scoreMap, sortedScores } = buildScoreBreakdown(preds, results);
     const allPeople = results && results.actual_individual ? Object.keys(results.actual_individual) : [];
 
     // Build Q3 grid: rows = predictors, columns = people being predicted
@@ -3689,62 +3765,7 @@
 
       ${q3Grid}
 
-      ${results ? `
-      <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center;margin-bottom:0.75rem">
-        <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Actual result</div>
-        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">${esc(results.actual_winner)} won · ${results.actual_total} total tins</div>
-      </div>
-      <div class="pred-reveal-card">
-        <div class="pred-reveal-header">🏆 This week's scores</div>
-        ${sortedScores.map(([name,pts],i)=>`<div class="pred-reveal-row"><span class="pred-reveal-name">${['🥇','🥈','🥉'][i]||''} ${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span></div>`).join('')}
-      </div>
-
-      <div class="pred-reveal-card">
-        <div class="pred-reveal-header">📊 Points breakdown</div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-          <table style="border-collapse:collapse;width:100%">
-            <thead><tr>
-              <th style="text-align:left;padding:0.3rem 0.6rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)">Predictor</th>
-              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)" title="Who eats most? (15 pts)">Q1</th>
-              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)" title="Group total? (15 pts)">Q2</th>
-              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)" title="Individual picks (5 pts each)">Q3</th>
-              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)">Total</th>
-            </tr></thead>
-            <tbody>
-              ${sortedScores.map(([name], i) => {
-                const q1 = q1map[name]||0, q2 = q2map[name]||0, q3 = q3map[name]||0, total = q1+q2+q3;
-                const pred = preds.find(p=>p.predictor===name);
-                const q1note = pred ? (q1>0 ? `✅ ${esc(pred.predicted_winner)}` : `❌ ${esc(pred.predicted_winner)}`) : '—';
-                const q2diff = pred && results ? Math.abs(pred.predicted_total - results.actual_total) : null;
-                const q2note = pred ? `${pred.predicted_total} (off ${q2diff??'?'})` : '—';
-                const q3notes = Object.entries(q3detail[name]||{}).map(([person,pts])=>`${esc(person)}: +${pts}`).join(', ') || '—';
-                const medals = ['🥇','🥈','🥉'];
-                return `<tr>
-                  <td style="padding:0.3rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;color:var(--ocean);border-bottom:1px solid #e8e0d0;white-space:nowrap">${medals[i]||''} ${esc(name)}</td>
-                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
-                    <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q1>0?'var(--ocean)':'var(--muted)'}">${q1}</div>
-                    <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);white-space:nowrap">${q1note}</div>
-                  </td>
-                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
-                    <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q2>0?'var(--ocean)':'var(--muted)'}">${q2}</div>
-                    <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);white-space:nowrap">${q2note}</div>
-                  </td>
-                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
-                    <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q3>0?'var(--ocean)':'var(--muted)'}">${q3}</div>
-                    <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted)">${q3notes}</div>
-                  </td>
-                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
-                    <div style="font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:${total>0?'var(--gold)':'var(--muted)'}">${total}</div>
-                  </td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.5rem;line-height:1.5">
-          Q1: correct winner = 15 pts &nbsp;·&nbsp; Q2: 15/3/1 for closest total &nbsp;·&nbsp; Q3: 5/3/1 per person closest guess
-        </div>
-      </div>` : `<div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Results calculating... check back soon!</div></div>`}
+      ${results ? renderResultsBreakdown(preds, results, predData.week_start) : `<div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Results calculating... check back soon!</div></div>`}
     `;
   }
 

@@ -683,7 +683,11 @@ def get_predictions():
         older_monday = (monday - timedelta(days=14)).isoformat()
         older_data = supabase_request('GET', f"prediction_results?week_start=eq.{older_monday}&select=*")
         prev_results = older_data[0] if older_data else None
-    return jsonify({"predictions": predictions, "week_start": week_start, "results": result, "prev_results": prev_results})
+    # Fetch prev week's predictions so the UI can show the full per-question breakdown
+    prev_predictions = []
+    if prev_results:
+        prev_predictions = supabase_request('GET', f"predictions?week_start=eq.{prev_results['week_start']}&select=*&order=timestamp.asc") or []
+    return jsonify({"predictions": predictions, "week_start": week_start, "results": result, "prev_results": prev_results, "prev_predictions": prev_predictions})
 
 @app.route('/api/predictions', methods=['POST'])
 def submit_prediction():
