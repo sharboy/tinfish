@@ -3448,7 +3448,7 @@
           <table style="border-collapse:collapse;width:100%;min-width:320px">
             <thead><tr>
               <th style="text-align:left;${thStyle}">Week</th>
-              <th style="text-align:left;${thStyle}">Winner</th>
+              <th style="text-align:left;${thStyle}">Most Tins</th>
               ${allPredictors.map(n=>`<th style="${thStyle}">${esc(n)}</th>`).join('')}
             </tr></thead>
             <tbody>
@@ -3476,7 +3476,7 @@
     return `
       <div style="background:var(--paper);border:1.5px solid var(--gold);padding:0.85rem 1rem;margin-bottom:1.25rem">
         <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.25rem">Last week's results · ${prev.week_start}</div>
-        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean);margin-bottom:0.6rem">🏆 ${esc(prev.actual_winner)} won · ${prev.actual_total} total tins</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean);margin-bottom:0.6rem">🏆 ${esc(prev.actual_winner)} ate the most tins</div>
         ${rows}
       </div>`;
   }
@@ -3673,7 +3673,7 @@
     return `
       <div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center;margin-bottom:0.75rem">
         <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">Last week · ${weekStart||results.week_start||''}</div>
-        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">${esc(results.actual_winner)} won · ${results.actual_total} total tins</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ocean)">${esc(results.actual_winner)} ate the most tins</div>
       </div>
       <div class="pred-reveal-card">
         <div class="pred-reveal-header">🏆 Last week's scores</div>
