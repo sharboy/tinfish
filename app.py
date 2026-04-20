@@ -684,9 +684,23 @@ def get_predictions():
         older_data = supabase_request('GET', f"prediction_results?week_start=eq.{older_monday}&select=*")
         prev_results = older_data[0] if older_data else None
     # Fetch prev week's predictions so the UI can show the full per-question breakdown
+    # Use same alt_week_starts logic to catch any off-by-one submissions
     prev_predictions = []
     if prev_results:
-        prev_predictions = supabase_request('GET', f"predictions?week_start=eq.{prev_results['week_start']}&select=*&order=timestamp.asc") or []
+        pw = prev_results['week_start']
+        prev_monday = datetime.fromisoformat(pw).date()
+        prev_alt_starts = [
+            (prev_monday - timedelta(days=1)).isoformat(),
+            (prev_monday + timedelta(days=1)).isoformat(),
+        ]
+        prev_predictions = supabase_request('GET', f"predictions?week_start=eq.{pw}&select=*&order=timestamp.asc") or []
+        seen_prev = {p['predictor'].lower() for p in prev_predictions}
+        for alt in prev_alt_starts:
+            alt_p = supabase_request('GET', f"predictions?week_start=eq.{alt}&select=*&order=timestamp.asc") or []
+            for p in alt_p:
+                if p['predictor'].lower() not in seen_prev:
+                    prev_predictions.append(p)
+                    seen_prev.add(p['predictor'].lower())
     return jsonify({"predictions": predictions, "week_start": week_start, "results": result, "prev_results": prev_results, "prev_predictions": prev_predictions})
 
 @app.route('/api/predictions', methods=['POST'])
