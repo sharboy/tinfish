@@ -787,15 +787,19 @@ def calculate_predictions():
     if not predictions:
         return jsonify({"error": "No predictions found"}), 404
 
-    # Score Q1: correct winner = 15pts
+    # Score Q1: correct winner = 10pts, runner-up = 5pts
+    sorted_by_tins = sorted(by_person.items(), key=lambda x: x[1], reverse=True)
+    runner_up = sorted_by_tins[1][0] if len(sorted_by_tins) > 1 else None
     scores = {p['predictor']: 0 for p in predictions}
     for p in predictions:
         if p['predicted_winner'] == actual_winner:
-            scores[p['predictor']] += 15
+            scores[p['predictor']] += 10
+        elif runner_up and p['predicted_winner'] == runner_up:
+            scores[p['predictor']] += 5
 
-    # Score Q2: 15/3/1 closest group total
+    # Score Q2: 10/6/3 closest group total
     ranked = sorted(predictions, key=lambda p: abs(p['predicted_total'] - actual_total))
-    pts = [15, 3, 1]
+    pts = [10, 6, 3]
     i = 0
     while i < len(ranked):
         j = i

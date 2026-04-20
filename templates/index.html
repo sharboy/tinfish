@@ -2003,6 +2003,7 @@
   let resultsAnimChecked = false;
 
   async function loadData() {
+    if (localStorage.getItem('tinpact_auth') !== '1') return;
     try {
       const res = await fetch('/api/data');
       appData = await res.json();
@@ -2485,6 +2486,8 @@
     }
     // Anniversary popup
     if (window._annReadyToShow) setTimeout(() => window._annReadyToShow(), 1200);
+    // Load data now that user is authenticated
+    loadData();
   }
 
   // If already authed (gate hidden by early script), run afterAuth now
@@ -3606,9 +3609,14 @@
     let q1map = {}, q2map = {}, q3map = {}, q3detail = {};
     preds.forEach(p => { q1map[p.predictor] = 0; q2map[p.predictor] = 0; q3map[p.predictor] = 0; q3detail[p.predictor] = {}; });
     if (results) {
-      preds.forEach(p => { if (p.predicted_winner === results.actual_winner) q1map[p.predictor] = 15; });
+      const sortedByTins = results.actual_individual ? Object.entries(results.actual_individual).sort((a,b)=>b[1]-a[1]) : [];
+      const runnerUp = sortedByTins.length > 1 ? sortedByTins[1][0] : null;
+      preds.forEach(p => {
+        if (p.predicted_winner === results.actual_winner) q1map[p.predictor] = 10;
+        else if (runnerUp && p.predicted_winner === runnerUp) q1map[p.predictor] = 5;
+      });
       const q2ranked = [...preds].map(p => ({name:p.predictor, diff:Math.abs(p.predicted_total - results.actual_total)})).sort((a,b)=>a.diff-b.diff);
-      const q2pts = [15,3,1];
+      const q2pts = [10,6,3];
       let i=0;
       while(i<q2ranked.length){let j=i;while(j<q2ranked.length&&q2ranked[j].diff===q2ranked[i].diff)j++;const award=q2pts[i]||0;for(let k=i;k<j;k++)q2map[q2ranked[k].name]=(q2map[q2ranked[k].name]||0)+award;i=j;}
       const allPeople = results.actual_individual ? Object.keys(results.actual_individual) : [];
@@ -3638,7 +3646,7 @@
     const breakdownRows = sortedScores.map(([name], i) => {
       const q1=q1map[name]||0, q2=q2map[name]||0, q3=q3map[name]||0, total=q1+q2+q3;
       const pred = preds.find(p=>p.predictor===name);
-      const q1note = pred ? (q1>0 ? `✅ ${esc(pred.predicted_winner)}` : `❌ ${esc(pred.predicted_winner)}`) : '—';
+      const q1note = pred ? (q1===10 ? `✅ ${esc(pred.predicted_winner)}` : q1===5 ? `〜 ${esc(pred.predicted_winner)}` : `❌ ${esc(pred.predicted_winner)}`) : '—';
       const q2diff = pred && results ? Math.abs(pred.predicted_total - results.actual_total) : null;
       const q2note = pred ? `${pred.predicted_total} (off ${q2diff??'?'})` : '—';
       const q3notes = Object.entries(q3detail[name]||{}).map(([person,pts])=>`${esc(person)}: +${pts}`).join(', ') || '—';
@@ -3677,8 +3685,8 @@
           <table style="border-collapse:collapse;width:100%">
             <thead><tr>
               <th style="text-align:left;padding:0.3rem 0.6rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)">Predictor</th>
-              <th style="${thStyle}" title="Who eats most? (15 pts)">Q1</th>
-              <th style="${thStyle}" title="Group total? (15 pts)">Q2</th>
+              <th style="${thStyle}" title="Who eats most? (10 pts / 5 runner-up)">Q1</th>
+              <th style="${thStyle}" title="Group total? (10/6/3 pts)">Q2</th>
               <th style="${thStyle}" title="Individual picks (5 pts each)">Q3</th>
               <th style="${thStyle}">Total</th>
             </tr></thead>
@@ -3686,7 +3694,7 @@
           </table>
         </div>
         <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.5rem;line-height:1.5">
-          Q1: correct winner = 15 pts &nbsp;·&nbsp; Q2: 15/3/1 for closest total &nbsp;·&nbsp; Q3: 5/3/1 per person closest guess
+          Q1: correct winner = 10 pts, runner-up = 5 pts &nbsp;·&nbsp; Q2: 10/6/3 for closest total &nbsp;·&nbsp; Q3: 5/3/1 per person closest guess
         </div>
       </div>`;
   }
@@ -3766,6 +3774,7 @@
       ${q3Grid}
 
       ${results ? renderResultsBreakdown(preds, results, predData.week_start) : `<div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Results calculating... check back soon!</div></div>`}
+      ${(() => { const prevPreds = predData && predData.prev_predictions ? predData.prev_predictions : []; const prevResults = predData && predData.prev_results ? predData.prev_results : null; if (!prevResults) return ''; return `<div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin:1.25rem 0 0.5rem">Last week's results</div>${renderResultsBreakdown(prevPreds, prevResults)}`; })()}
     `;
   }
 
@@ -3945,6 +3954,14 @@
         // Confetti burst when name appears
         if (pf === 130) conf(W/2, H*0.5, 20, ['#c9962b','#f5f0e8','#5dcaa5','#c0392b','#9b59b6']);
 
+        // Transition text: bridge to prediction competition
+        if (pf > T_REVEAL_END - 120 && pf <= T_REVEAL_END - 60) {
+          const tOp = Math.min(1, (pf - (T_REVEAL_END - 120)) / 30);
+          ctx.globalAlpha = tOp;
+          ctx.fillStyle = '#c9962b'; ctx.font = `bold ${Math.min(13,W*0.034)}px 'Courier New',monospace`; ctx.textAlign = 'center';
+          ctx.fillText('BUT WHO PREDICTED THE WEEK?', W/2, H*0.87);
+          ctx.globalAlpha = 1;
+        }
         // Transition: flash then fade out
         if (pf > T_REVEAL_END - 60) {
           const fadeOut = (pf - (T_REVEAL_END - 60)) / 60;
@@ -4065,9 +4082,9 @@
           const op = Math.min(1, (pf-90)/40);
           ctx.globalAlpha = op;
           ctx.fillStyle = '#f5f0e8'; ctx.font = `bold ${Math.min(16,W*0.04)}px 'Courier New',monospace`; ctx.textAlign = 'center';
-          ctx.fillText('PREDICTION STANDINGS', W/2, 24);
+          ctx.fillText('PREDICTION ACCURACY STANDINGS', W/2, 24);
           ctx.fillStyle = '#c9962b'; ctx.font = `bold 10px 'Courier New',monospace`;
-          ctx.fillText(`${esc(predWinner).toUpperCase()} TAKES THE CROWN`, W/2, 40);
+          ctx.fillText(`${esc(predWinner).toUpperCase()} WINS THE PREDICTION GAME`, W/2, 40);
           ctx.globalAlpha = 1;
         }
       }
