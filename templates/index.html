@@ -3492,7 +3492,14 @@
     const status = getPredStatus();
     const myName = localStorage.getItem('tinpact_name') || '';
     const el = document.getElementById('pred-content');
+    if (!el) return;
     const seenTooltip = localStorage.getItem('tinpact_pred_tip') === (predData && predData.week_start);
+
+    // If appData not loaded yet, wait and retry
+    if (!appData || !appData.entries) {
+      setTimeout(renderPredictions, 300);
+      return;
+    }
 
     if (status === 'revealed') { renderPredictionsRevealed(el); return; }
 
