@@ -3595,19 +3595,19 @@
       return;
     }
 
-    // Calculate scores
-    let scoreMap = {};
-    preds.forEach(p => { scoreMap[p.predictor] = 0; });
+    // Calculate scores with per-question breakdown
+    let q1map = {}, q2map = {}, q3map = {}, q3detail = {};
+    preds.forEach(p => { q1map[p.predictor] = 0; q2map[p.predictor] = 0; q3map[p.predictor] = 0; q3detail[p.predictor] = {}; });
 
     if (results) {
       // Q1: 15pts for correct winner
-      preds.forEach(p => { if (p.predicted_winner === results.actual_winner) scoreMap[p.predictor] += 15; });
+      preds.forEach(p => { if (p.predicted_winner === results.actual_winner) q1map[p.predictor] = 15; });
 
       // Q2: 15/3/1 closest group total
       const q2ranked = [...preds].map(p => ({name:p.predictor, diff:Math.abs(p.predicted_total - results.actual_total)})).sort((a,b)=>a.diff-b.diff);
       const q2pts = [15,3,1];
       let i=0;
-      while(i<q2ranked.length){let j=i;while(j<q2ranked.length&&q2ranked[j].diff===q2ranked[i].diff)j++;const award=q2pts[i]||0;for(let k=i;k<j;k++)scoreMap[q2ranked[k].name]=(scoreMap[q2ranked[k].name]||0)+award;i=j;}
+      while(i<q2ranked.length){let j=i;while(j<q2ranked.length&&q2ranked[j].diff===q2ranked[i].diff)j++;const award=q2pts[i]||0;for(let k=i;k<j;k++)q2map[q2ranked[k].name]=(q2map[q2ranked[k].name]||0)+award;i=j;}
 
       // Q3: 5/3/1 per person
       const allPeople = results.actual_individual ? Object.keys(results.actual_individual) : [];
@@ -3618,10 +3618,12 @@
           .sort((a,b)=>a.diff-b.diff);
         const q3pts=[5,3,1];
         let ii=0;
-        while(ii<guesses.length){let jj=ii;while(jj<guesses.length&&guesses[jj].diff===guesses[ii].diff)jj++;const award=q3pts[ii]||0;for(let kk=ii;kk<jj;kk++)scoreMap[guesses[kk].name]=(scoreMap[guesses[kk].name]||0)+award;ii=jj;}
+        while(ii<guesses.length){let jj=ii;while(jj<guesses.length&&guesses[jj].diff===guesses[ii].diff)jj++;const award=q3pts[ii]||0;for(let kk=ii;kk<jj;kk++){q3map[guesses[kk].name]=(q3map[guesses[kk].name]||0)+award;q3detail[guesses[kk].name][person]=award;}ii=jj;}
       });
     }
 
+    const scoreMap = {};
+    preds.forEach(p => { scoreMap[p.predictor] = (q1map[p.predictor]||0)+(q2map[p.predictor]||0)+(q3map[p.predictor]||0); });
     const sortedScores = Object.entries(scoreMap).sort((a,b)=>b[1]-a[1]);
     const allPeople = results && results.actual_individual ? Object.keys(results.actual_individual) : [];
 
@@ -3695,6 +3697,53 @@
       <div class="pred-reveal-card">
         <div class="pred-reveal-header">🏆 This week's scores</div>
         ${sortedScores.map(([name,pts],i)=>`<div class="pred-reveal-row"><span class="pred-reveal-name">${['🥇','🥈','🥉'][i]||''} ${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:${pts>0?'var(--gold)':'var(--muted)'};font-weight:700">${pts} pts</span></div>`).join('')}
+      </div>
+
+      <div class="pred-reveal-card">
+        <div class="pred-reveal-header">📊 Points breakdown</div>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <table style="border-collapse:collapse;width:100%">
+            <thead><tr>
+              <th style="text-align:left;padding:0.3rem 0.6rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)">Predictor</th>
+              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)" title="Who eats most? (15 pts)">Q1</th>
+              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)" title="Group total? (15 pts)">Q2</th>
+              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)" title="Individual picks (5 pts each)">Q3</th>
+              <th style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;border-bottom:1.5px solid var(--ink)">Total</th>
+            </tr></thead>
+            <tbody>
+              ${sortedScores.map(([name], i) => {
+                const q1 = q1map[name]||0, q2 = q2map[name]||0, q3 = q3map[name]||0, total = q1+q2+q3;
+                const pred = preds.find(p=>p.predictor===name);
+                const q1note = pred ? (q1>0 ? `✅ ${esc(pred.predicted_winner)}` : `❌ ${esc(pred.predicted_winner)}`) : '—';
+                const q2diff = pred && results ? Math.abs(pred.predicted_total - results.actual_total) : null;
+                const q2note = pred ? `${pred.predicted_total} (off ${q2diff??'?'})` : '—';
+                const q3notes = Object.entries(q3detail[name]||{}).map(([person,pts])=>`${esc(person)}: +${pts}`).join(', ') || '—';
+                const medals = ['🥇','🥈','🥉'];
+                return `<tr>
+                  <td style="padding:0.3rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;color:var(--ocean);border-bottom:1px solid #e8e0d0;white-space:nowrap">${medals[i]||''} ${esc(name)}</td>
+                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+                    <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q1>0?'var(--ocean)':'var(--muted)'}">${q1}</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);white-space:nowrap">${q1note}</div>
+                  </td>
+                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+                    <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q2>0?'var(--ocean)':'var(--muted)'}">${q2}</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);white-space:nowrap">${q2note}</div>
+                  </td>
+                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+                    <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q3>0?'var(--ocean)':'var(--muted)'}">${q3}</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted)">${q3notes}</div>
+                  </td>
+                  <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
+                    <div style="font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:${total>0?'var(--gold)':'var(--muted)'}">${total}</div>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.5rem;line-height:1.5">
+          Q1: correct winner = 15 pts &nbsp;·&nbsp; Q2: 15/3/1 for closest total &nbsp;·&nbsp; Q3: 5/3/1 per person closest guess
+        </div>
       </div>` : `<div style="background:white;border:1.5px solid var(--ink);padding:0.85rem;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted)">Results calculating... check back soon!</div></div>`}
     `;
   }
@@ -3781,32 +3830,29 @@
     function conf(x,y,n,C){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-0.5)*10,vy:-(Math.random()*12+3),col:C[~~(Math.random()*C.length)],w:~~(Math.random()*7)+2,h:~~(Math.random()*4)+2,rot:Math.random()*Math.PI,rv:(Math.random()-0.5)*0.4,life:1});}
     function spk(x,y,n,col){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=Math.random()*8+2;sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,col,size:~~(Math.random()*4)+2,life:1});}}
 
-    // Build fighter list from scores
+    // Build fighter list from prediction scores
     const scores = results.scores || {};
     const sorted = Object.entries(scores).sort((a,b)=>b[1]-a[1]);
-    const winner = results.actual_winner || (sorted[0] && sorted[0][0]) || 'Winner';
+    const tinWinner = results.actual_winner || 'Unknown';    // who ate most tins
+    const predWinner = (sorted[0] && sorted[0][0]) || tinWinner; // who predicted best
     const numFighters = Math.min(sorted.length, 5);
 
-    // Fighters
+    // Fighters ordered by prediction score
     let fighters = sorted.slice(0, numFighters).map((([name, pts], i) => ({
       name, pts, col: COLS[i % COLS.length],
       x: -20 - i * 35, y: H * 0.38 + (i % 3) * 28,
       vx: 2.5 + Math.random(), vy: 0,
-      state: 'run', stateTimer: 0,
-      isWinner: name === winner,
       rank: i
     })));
 
-    // Phase timings (at 60fps, ~30s total)
-    const T_BATTLE_END  = 600;  // 10s battle
-    const T_LOSERS_END  = 1200; // 10s losers crying
-    const T_PODIUM_END  = 1800; // 10s podium
-    const T_DONE        = 1860;
+    // Phase timings (at 60fps, ~40s total)
+    const T_REVEAL_END  = 420;  // ~7s  tin winner reveal
+    const T_BATTLE_END  = 1020; // ~10s battle for prediction glory
+    const T_LOSERS_END  = 1620; // ~10s prediction winner struts
+    const T_PODIUM_END  = 2220; // ~10s prediction podium
+    const T_DONE        = 2280;
 
-    let podiumBuilt = false;
-    let podiumFighters = [];
     let tears = [];
-
     function addTear(x, y) { tears.push({x, y, vy: 1.5, life: 1}); }
 
     function loop() {
@@ -3817,53 +3863,113 @@
       ctx.fillStyle='#1a3a4a'; ctx.fillRect(0,H-20,W,20);
       ctx.fillStyle='#0d2030'; ctx.fillRect(0,H-16,W,16);
 
-      // ── PHASE 1: BATTLE ──
-      if (fr < T_BATTLE_END) {
-        // Fighters run and clash
+      // ── PHASE 0: TIN WINNER REVEAL ──
+      if (fr < T_REVEAL_END) {
+        const pf = fr;
+        const fadeIn = Math.min(1, pf / 60);
+
+        // Scanning line effect
+        const scanY = (pf * 3) % (H + 40) - 20;
+        ctx.fillStyle = 'rgba(93,202,165,0.06)';
+        ctx.fillRect(0, scanY, W, 8);
+
+        // Fish raining down from top
+        if (pf > 60 && pf % 18 === 0) {
+          for (let i=0;i<3;i++) parts.push({x: Math.random()*W, y:-10, vx:(Math.random()-0.5)*1.5, vy: 1.8+Math.random()*1.2, col:'#5dcaa5', w:6, h:6, rot:0, rv:0.05, life:0.9, isFish:true});
+        }
+
+        // Big centered fish sprite
+        if (pf > 30) {
+          const fishScale = Math.min(6, 3 + (pf-30)/60);
+          const fishOp = Math.min(1, (pf-30)/40);
+          ctx.globalAlpha = fishOp;
+          const fishBob = Math.sin(pf * 0.07) * 5;
+          spr(FISH, W/2 - fishScale*3, H*0.28 + fishBob - fishScale*3, fishScale, ['#5dcaa5','#3a9a80']);
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.globalAlpha = fadeIn;
+        ctx.fillStyle = '#c9962b'; ctx.font = `bold ${Math.min(10,W*0.028)}px 'Courier New',monospace`; ctx.textAlign = 'center';
+        ctx.fillText(`WEEK OF ${results.week_start || ''}`, W/2, 20);
+
+        ctx.fillStyle = '#f5f0e8'; ctx.font = `bold ${Math.min(14,W*0.038)}px 'Courier New',monospace`;
+        ctx.fillText('TIN CHAMPION OF THE WEEK', W/2, 38);
+        ctx.globalAlpha = 1;
+
+        // Big name drops in
+        if (pf > 80) {
+          const nameOp = Math.min(1, (pf-80)/50);
+          const nameScale = Math.max(0.5, Math.min(1, (pf-80)/40));
+          ctx.globalAlpha = nameOp;
+          ctx.save();
+          ctx.translate(W/2, H*0.58);
+          ctx.scale(nameScale, nameScale);
+          ctx.fillStyle = '#5dcaa5'; ctx.font = `bold ${Math.min(22,W*0.058)}px 'Courier New',monospace`; ctx.textAlign = 'center';
+          ctx.fillText(tinWinner.toUpperCase(), 0, 0);
+          ctx.restore();
+          ctx.globalAlpha = 1;
+        }
+
+        // Tins count appears after name
+        if (pf > 160) {
+          const op = Math.min(1, (pf-160)/40);
+          ctx.globalAlpha = op;
+          ctx.fillStyle = '#c9962b'; ctx.font = `bold ${Math.min(13,W*0.034)}px 'Courier New',monospace`; ctx.textAlign = 'center';
+          ctx.fillText(`${results.actual_total || '?'} TINS`, W/2, H*0.72);
+          ctx.fillStyle = '#a0b0b8'; ctx.font = `bold 9px 'Courier New',monospace`;
+          ctx.fillText('CONSUMED', W/2, H*0.72 + 16);
+          ctx.globalAlpha = 1;
+        }
+
+        // Confetti burst when name appears
+        if (pf === 130) conf(W/2, H*0.5, 20, ['#c9962b','#f5f0e8','#5dcaa5','#c0392b','#9b59b6']);
+
+        // Transition: flash then fade out
+        if (pf > T_REVEAL_END - 60) {
+          const fadeOut = (pf - (T_REVEAL_END - 60)) / 60;
+          ctx.fillStyle = `rgba(6,13,17,${fadeOut})`;
+          ctx.fillRect(0, 0, W, H);
+        }
+      }
+
+      // ── PHASE 1: BATTLE FOR PREDICTION GLORY ──
+      else if (fr < T_BATTLE_END) {
+        const pf = fr - T_REVEAL_END;
         fighters.forEach((f,i) => {
           f.x += f.vx + Math.sin(fr * 0.05 + i) * 0.5;
           f.y += Math.sin(fr * 0.08 + i * 1.2) * 1.2;
           f.y = Math.max(H*0.15, Math.min(H*0.65, f.y));
           if (f.x > W + 40) f.x = -30;
-
-          // Occasional clash sparks
           if (fr % 40 === i * 8 % 40) { spk(f.x, f.y, 8, f.col); shk = 6; }
-
           const sp = fr % 10 < 5 ? RUNNER : RUNNER_RUN;
           spr(sp, f.x - 10, f.y - 20, 3, f.col);
-
-          // Draw fists clashing occasionally
           if (fr % 60 === i * 12 % 60) { spr(FIST, f.x + 14, f.y - 16, 3, f.col); }
         });
 
-        // Floating fish (the prize)
         const fishX = W/2 + Math.sin(fr * 0.04) * 80;
         const fishY = H * 0.12 + Math.abs(Math.sin(fr * 0.06)) * 20;
         spr(FISH, fishX - 9, fishY - 9, 3, ['#5dcaa5','#3a9a80']);
 
         ctx.fillStyle = '#f5f0e8'; ctx.font = `bold ${Math.min(16,W*0.04)}px 'Courier New',monospace`; ctx.textAlign = 'center';
-        ctx.fillText('THE BATTLE FOR TIN GLORY', W/2, 24);
+        ctx.fillText('THE BATTLE FOR PREDICTION GLORY', W/2, 24);
         ctx.fillStyle = '#c9962b'; ctx.font = `bold 10px 'Courier New',monospace`;
-        ctx.fillText(`WEEK OF ${results.week_start || ''}`, W/2, 40);
+        ctx.fillText('WHO CALLED IT?', W/2, 40);
 
-        // Countdown bar
-        const progress = fr / T_BATTLE_END;
+        const progress = pf / (T_BATTLE_END - T_REVEAL_END);
         ctx.fillStyle = '#1a3a4a'; ctx.fillRect(W*0.1, H-36, W*0.8, 8);
-        ctx.fillStyle = '#c0392b'; ctx.fillRect(W*0.1, H-36, W*0.8*progress, 8);
+        ctx.fillStyle = '#5dcaa5'; ctx.fillRect(W*0.1, H-36, W*0.8*progress, 8);
       }
 
-      // ── PHASE 2: LOSERS CRYING ──
+      // ── PHASE 2: PREDICTION WINNER STRUTS ──
       else if (fr < T_LOSERS_END) {
         const pf = fr - T_BATTLE_END;
 
-        // Winner strutting across screen
         const wx = (pf * 2.5) % (W + 80) - 40;
         spr(RUNNER_RUN, wx - 10, H * 0.3 - 20, 4, fighters[0].col);
         spr(TROPHY, wx - 8, H*0.3 - 52, 4, '#c9962b');
         ctx.fillStyle = fighters[0].col; ctx.font = `bold ${Math.max(9,~~(W*0.028))}px 'Courier New',monospace`; ctx.textAlign = 'center';
-        ctx.fillText(esc(winner), wx, H*0.3 - 58);
+        ctx.fillText(esc(predWinner), wx, H*0.3 - 58);
 
-        // Losers slumped around screen
         fighters.slice(1).forEach((f, i) => {
           const lx = W * 0.1 + i * (W * 0.22);
           const ly = H * 0.6;
@@ -3871,21 +3977,14 @@
           ctx.globalAlpha = op;
           spr(RUNNER_CRY, lx - 10, ly - 20, 3, f.col);
           ctx.globalAlpha = 1;
-
-          // Tears
           if (pf > 60 && pf % 15 === i * 5 % 15) addTear(lx, ly - 5);
         });
 
-        // Draw tears
         tears = tears.filter(t => t.life > 0);
-        tears.forEach(t => {
-          t.y += t.vy; t.life -= 0.04;
-          ctx.fillStyle = `rgba(85,170,255,${t.life})`;
-          ctx.fillRect(~~t.x, ~~t.y, 3, 5);
-        });
+        tears.forEach(t => { t.y += t.vy; t.life -= 0.04; ctx.fillStyle = `rgba(85,170,255,${t.life})`; ctx.fillRect(~~t.x, ~~t.y, 3, 5); });
 
         ctx.fillStyle = '#f5f0e8'; ctx.font = `bold ${Math.min(16,W*0.04)}px 'Courier New',monospace`; ctx.textAlign = 'center';
-        const msg = pf < 200 ? `${esc(winner).toUpperCase()} WINS!!!` : 'BETTER LUCK NEXT WEEK...';
+        const msg = pf < 200 ? `${predWinner.toUpperCase()} PREDICTED BEST!!!` : 'BETTER LUCK NEXT WEEK...';
         ctx.fillText(msg, W/2, 24);
         if (pf > 120) {
           ctx.fillStyle = '#c9962b'; ctx.font = `bold 10px 'Courier New',monospace`;
@@ -3893,7 +3992,7 @@
         }
       }
 
-      // ── PHASE 3: PODIUM ──
+      // ── PHASE 3: PREDICTION PODIUM ──
       else if (fr < T_PODIUM_END) {
         const pf = fr - T_LOSERS_END;
 
@@ -3922,7 +4021,6 @@
             ctx.fillStyle = '#c9962b'; ctx.font = `bold ${Math.max(7,~~(podW*0.12))}px 'Courier New',monospace`;
             ctx.fillText(`${pts}pts`, ~~(podX+podOffsets[i]), ~~(py-40));
 
-            // Winner gets crown + trophy
             if (i === 0 && pf > 100) {
               spr(TROPHY, ~~(podX-8), ~~(py-56), 3, '#c9962b');
               spr(CROWN, ~~(podX-14), ~~(py-76), 3, '#c9962b');
@@ -3931,7 +4029,6 @@
           }
         });
 
-        // Losers to sides
         sorted.slice(3).forEach((([name], i) => {
           const ox = i === 0 ? W*0.06 : W*0.94;
           const prog = Math.min(1, (pf - 50) / 60);
@@ -3941,16 +4038,15 @@
           ctx.globalAlpha = 1;
         }));
 
-        // Confetti
         if (pf > 120 && fr % 6 === 0) conf(Math.random()*W, -5, 3, ['#c9962b','#f5f0e8','#5dcaa5','#c0392b','#9b59b6']);
 
         if (pf > 90) {
           const op = Math.min(1, (pf-90)/40);
           ctx.globalAlpha = op;
           ctx.fillStyle = '#f5f0e8'; ctx.font = `bold ${Math.min(16,W*0.04)}px 'Courier New',monospace`; ctx.textAlign = 'center';
-          ctx.fillText('LAST WEEK\'S RESULTS', W/2, 24);
+          ctx.fillText('PREDICTION STANDINGS', W/2, 24);
           ctx.fillStyle = '#c9962b'; ctx.font = `bold 10px 'Courier New',monospace`;
-          ctx.fillText(`${esc(winner)} TAKES THE CROWN`, W/2, 40);
+          ctx.fillText(`${esc(predWinner).toUpperCase()} TAKES THE CROWN`, W/2, 40);
           ctx.globalAlpha = 1;
         }
       }

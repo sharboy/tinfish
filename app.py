@@ -657,11 +657,11 @@ def get_predictions():
     predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*&order=timestamp.asc")
     if predictions is None:
         predictions = []
-    # Backward-compat: various historical week_start formulas produced different dates.
-    # Always check adjacent dates so no submissions get stranded regardless of day.
+    # Backward-compat: check ±1-2 days around Monday in case of off-by-one from old deploys.
+    # Do NOT check -7 days (that's last week's Monday and would pull in stale submissions).
     alt_week_starts = [
-        (monday - timedelta(days=7)).isoformat(),  # old Sunday formula (prev Monday)
-        (monday + timedelta(days=1)).isoformat(),   # +1 day offset from some deploys
+        (monday - timedelta(days=1)).isoformat(),  # Sunday off-by-one
+        (monday + timedelta(days=1)).isoformat(),  # Tuesday off-by-one
     ]
     existing_predictors = {p['predictor'].lower() for p in predictions}
     for alt_start in alt_week_starts:
@@ -711,8 +711,8 @@ def submit_prediction():
         return jsonify({"error": "Predictions are closed"}), 403
 
     existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{week_start}&select=id")
-    if not existing:  # check all known historical week_start variants (Sunday and Monday)
-        for alt_start in [(monday - timedelta(days=7)).isoformat(), (monday + timedelta(days=1)).isoformat()]:
+    if not existing:  # check ±1-2 days around Monday for off-by-one submissions
+        for alt_start in [(monday - timedelta(days=1)).isoformat(), (monday + timedelta(days=1)).isoformat()]:
             existing = supabase_request('GET', f"predictions?predictor=eq.{urllib.parse.quote(predictor)}&week_start=eq.{alt_start}&select=id")
             if existing:
                 break
