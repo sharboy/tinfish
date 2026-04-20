@@ -688,7 +688,9 @@ def get_predictions():
     prev_predictions = []
     if prev_results:
         pw = prev_results['week_start']
-        prev_monday = datetime.fromisoformat(pw).date()
+        prev_monday_date = pw[:10]  # just take YYYY-MM-DD part
+        from datetime import date as _date
+        prev_monday = _date.fromisoformat(prev_monday_date)
         prev_alt_starts = [
             (prev_monday - timedelta(days=1)).isoformat(),
             (prev_monday + timedelta(days=1)).isoformat(),
