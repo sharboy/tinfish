@@ -3649,7 +3649,21 @@
       const q1note = pred ? (q1===10 ? `✅ ${esc(pred.predicted_winner)}` : q1===5 ? `〜 ${esc(pred.predicted_winner)}` : `❌ ${esc(pred.predicted_winner)}`) : '—';
       const q2diff = pred && results ? Math.abs(pred.predicted_total - results.actual_total) : null;
       const q2note = pred ? `${pred.predicted_total} (off ${q2diff??'?'})` : '—';
-      const q3notes = Object.entries(q3detail[name]||{}).map(([person,pts])=>`${esc(person)}: +${pts}`).join(', ') || '—';
+      // Q3: show each person guessed for with guess, actual, and pts earned
+      const q3notes = (() => {
+        if (!pred || !results || !results.actual_individual) return '—';
+        const ind = pred.individual_predictions || {};
+        const entries = Object.entries(results.actual_individual)
+          .filter(([person]) => person !== name && ind[person] !== undefined)
+          .map(([person, actual]) => {
+            const guess = ind[person];
+            const pts = (q3detail[name]||{})[person] || 0;
+            const diff = Math.abs(guess - actual);
+            const badge = pts === 5 ? '🥇' : pts === 3 ? '🥈' : pts === 1 ? '🥉' : '';
+            return `${badge} ${esc(person)}: ${guess}→${actual} (${diff===0?'exact':'+'+diff})${pts>0?' +'+pts+'pts':''}`;
+          });
+        return entries.length ? entries.join('<br>') : '—';
+      })();
       return `<tr>
         <td style="padding:0.3rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;color:var(--ocean);border-bottom:1px solid #e8e0d0;white-space:nowrap">${medals[i]||''} ${esc(name)}</td>
         <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
@@ -3662,7 +3676,7 @@
         </td>
         <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
           <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q3>0?'var(--ocean)':'var(--muted)'}">${q3}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted)">${q3notes}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);line-height:1.6;text-align:left">${q3notes}</div>
         </td>
         <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
           <div style="font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:${total>0?'var(--gold)':'var(--muted)'}">${total}</div>
