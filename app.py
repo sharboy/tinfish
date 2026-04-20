@@ -852,8 +852,7 @@ def calculate_predictions():
         "id": uuid.uuid4().hex,
         "week_start": week_start,
         "actual_winner": actual_winner,
-        "actual_total": actual_winner_tins,  # winner's personal tins
-        "actual_group_total": actual_total,  # group total for reference
+        "actual_total": actual_winner_tins,
         "actual_individual": by_person,
         "scores": scores,
     }
