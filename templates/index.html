@@ -3495,12 +3495,6 @@
     if (!el) return;
     const seenTooltip = localStorage.getItem('tinpact_pred_tip') === (predData && predData.week_start);
 
-    // If appData not loaded yet, wait and retry
-    if (!appData || !appData.entries) {
-      setTimeout(renderPredictions, 300);
-      return;
-    }
-
     if (status === 'revealed') { renderPredictionsRevealed(el); return; }
 
     if (!myName) { renderPredictionsNamePicker(el); return; }
@@ -3687,7 +3681,7 @@
         return entries.length ? entries.join('<br>') : '—';
       })();
       return `<tr>
-        <td style="padding:0.3rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;color:var(--ocean);border-bottom:1px solid #e8e0d0;white-space:nowrap">${medals[i]||''} ${esc(name)}</td>
+        <td style="padding:0.3rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:500;color:var(--ocean);border-bottom:1px solid #e8e0d0;white-space:nowrap">${getMedal(getRank(sortedScores,i))||''} ${esc(name)}</td>
         <td style="text-align:center;padding:0.3rem 0.5rem;border-bottom:1px solid #e8e0d0">
           <div style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:700;color:${q1>0?'var(--ocean)':'var(--muted)'}">${q1}</div>
           <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);white-space:nowrap">${q1note}</div>
@@ -3736,6 +3730,7 @@
   }
 
   function renderPredictionsRevealed(el) {
+    const medals = ['🥇','🥈','🥉'];
     const preds = predData && predData.predictions ? predData.predictions : [];
     const results = predData && predData.results ? predData.results : null;
 
