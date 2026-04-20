@@ -1198,6 +1198,50 @@
     to { transform: scaleX(0); }
   }
 
+  /* PREDICTION REMINDER BANNER */
+  #pred-reminder-banner {
+    background: var(--ocean);
+    color: var(--cream);
+    padding: 0.75rem 1rem;
+    position: relative;
+    border-bottom: 3px solid var(--gold);
+    animation: slideDown 0.4s ease;
+    display: none;
+    cursor: pointer;
+  }
+  #pred-reminder-banner.visible { display: block; }
+  .pred-reminder-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .pred-reminder-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.4;
+  }
+  .pred-reminder-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.2rem;
+  }
+  .pred-reminder-btn {
+    background: var(--gold);
+    border: none;
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   /* SPLASH SCREEN */
   #splash {
     position: fixed;
@@ -1432,6 +1476,17 @@
   <div class="since-progress"><div class="since-progress-fill" id="since-progress-fill"></div></div>
 </div>
 
+<!-- PREDICTION REMINDER BANNER -->
+<div id="pred-reminder-banner" onclick="showPage('predictions');initPredictions();dismissPredReminder()">
+  <div class="pred-reminder-inner">
+    <div class="pred-reminder-text">
+      <div class="pred-reminder-label">🎯 Predictions close tonight</div>
+      <div>Don't forget to pick your predictions for this week!</div>
+    </div>
+    <button class="pred-reminder-btn" onclick="event.stopPropagation();showPage('predictions');initPredictions();dismissPredReminder()">Pick now →</button>
+  </div>
+</div>
+
 <!-- Desktop-only progress bar -->
 <div class="desktop-progress-bar">
   <div class="progress-banner" style="display:block !important">
@@ -1538,6 +1593,7 @@
         <div id="pred-content">
           <div style="text-align:center;padding:2rem;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem">Loading...</div>
         </div>
+        <div id="pred-standings"></div>
       </div>
     </div>
 
@@ -1982,7 +2038,7 @@
     renderTinReport();
     renderEntries();
     renderStats();
-    if (!sinceBannerChecked) { checkSinceBanner(); sinceBannerChecked = true; }
+    if (!sinceBannerChecked) { checkSinceBanner(); sinceBannerChecked = true; checkPredReminder(); }
     // Milestone checks
     const _myName = localStorage.getItem('tinpact_name') || '';
     const _total = appData.entries.reduce((s,e) => s + e.tins, 0);
@@ -2354,6 +2410,30 @@
 
     // Update last visit time
     localStorage.setItem(LAST_VISIT_KEY, now);
+  }
+
+  function checkPredReminder() {
+    const now = new Date();
+    const est = new Date(now.toLocaleString('en-US', {timeZone: 'America/New_York'}));
+    if (est.getDay() !== 1) return; // Monday only
+    const myName = localStorage.getItem('tinpact_name') || '';
+    if (!myName) return;
+    const weekStart = getWeekStart();
+    const reminderKey = 'tinpact_pred_reminder_' + weekStart;
+    if (localStorage.getItem(reminderKey)) return;
+    // Check if user has already submitted
+    const submitted = predData && predData.predictions && predData.predictions.some(p => p.predictor.toLowerCase() === myName.toLowerCase());
+    if (submitted) return;
+    localStorage.setItem(reminderKey, '1');
+    document.getElementById('pred-reminder-banner').classList.add('visible');
+    setTimeout(() => dismissPredReminder(), 12000);
+  }
+
+  function dismissPredReminder() {
+    const banner = document.getElementById('pred-reminder-banner');
+    banner.style.transition = 'opacity 0.3s ease';
+    banner.style.opacity = '0';
+    setTimeout(() => { banner.classList.remove('visible'); banner.style.opacity = ''; banner.style.transition = ''; }, 300);
   }
 
   function dismissSinceBanner() {
@@ -3220,6 +3300,7 @@
 
   // ── PREDICTIONS ──
   let predData = null;
+  let predHistory = null;
   let predAnimRaf;
 
   function getPredStatus() {
@@ -3255,15 +3336,16 @@
   async function initPredictions() {
     await loadPredictions();
 
-    // Monday AM: show results animation if prev_results exist and not yet seen
-    const isMonday = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'})).getDay() === 1;
-    const resultsKey = 'tinpact_results_anim_' + getWeekStart();
-    if (isMonday && predData && predData.prev_results && !localStorage.getItem(resultsKey)) {
-      localStorage.setItem(resultsKey, '1');
-      document.getElementById('pred-anim-wrap').style.display = 'none';
-      document.getElementById('results-anim-wrap').style.display = 'block';
-      startResultsAnim(predData.prev_results);
-      return;
+    // Show results animation on first visit since they were calculated (any day of week)
+    if (predData && predData.prev_results) {
+      const resultsKey = 'tinpact_results_anim_' + predData.prev_results.week_start;
+      if (!localStorage.getItem(resultsKey)) {
+        localStorage.setItem(resultsKey, '1');
+        document.getElementById('pred-anim-wrap').style.display = 'none';
+        document.getElementById('results-anim-wrap').style.display = 'block';
+        startResultsAnim(predData.prev_results);
+        return;
+      }
     }
 
     // Otherwise show the chase animation (first visit of week)
@@ -3283,6 +3365,90 @@
       predData = await res.json();
       renderPredictions();
     } catch(e) { console.error('Predictions load error', e); }
+    loadPredHistory();
+  }
+
+  async function loadPredHistory() {
+    try {
+      const res = await fetch('/api/predictions/history');
+      const data = await res.json();
+      predHistory = data.history || [];
+      renderPredStandings();
+    } catch(e) { console.error('Pred history load error', e); }
+  }
+
+  function renderPredStandings() {
+    const el = document.getElementById('pred-standings');
+    if (!el) return;
+    if (!predHistory || !predHistory.length) {
+      el.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:0.65rem;color:var(--muted);text-align:center;padding:1rem">No results yet — check back after the first week!</div>';
+      return;
+    }
+
+    // Collect all predictors and cumulative scores
+    const totals = {};
+    predHistory.forEach(r => {
+      const scores = r.scores || {};
+      Object.entries(scores).forEach(([name, pts]) => {
+        totals[name] = (totals[name] || 0) + pts;
+      });
+    });
+    const allPredictors = Object.keys(totals).sort();
+    const sortedTotals = Object.entries(totals).sort((a,b) => b[1]-a[1]);
+    const medals = ['🥇','🥈','🥉'];
+
+    // Table header: Week | predictor1 | predictor2 | ...
+    const thStyle = `padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.6rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;text-align:center;white-space:nowrap;border-bottom:1.5px solid var(--ink)`;
+    const weekRows = predHistory.map(r => {
+      const scores = r.scores || {};
+      const weekCells = allPredictors.map(name => {
+        const pts = scores[name] !== undefined ? scores[name] : '—';
+        return `<td style="text-align:center;padding:0.3rem 0.5rem;font-family:'DM Mono',monospace;font-size:0.72rem;color:${typeof pts==='number'&&pts>0?'var(--ocean)':'var(--muted)'};border-bottom:1px solid #e8e0d0">${pts}</td>`;
+      }).join('');
+      return `<tr>
+        <td style="padding:0.3rem 0.6rem;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);white-space:nowrap;border-bottom:1px solid #e8e0d0">${r.week_start}</td>
+        <td style="padding:0.3rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;color:var(--ocean);white-space:nowrap;border-bottom:1px solid #e8e0d0">${esc(r.actual_winner)}</td>
+        ${weekCells}
+      </tr>`;
+    }).join('');
+
+    const totalCells = allPredictors.map(name => {
+      const pts = totals[name] || 0;
+      return `<td style="text-align:center;padding:0.4rem 0.5rem;font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:700;color:${pts>0?'var(--gold)':'var(--muted)'};border-top:2px solid var(--ink)">${pts}</td>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div style="margin-top:2rem">
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:0.85rem">Season Standings</div>
+
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          ${sortedTotals.map(([name,pts],i) => `
+            <div style="background:var(--paper);border:1.5px solid ${i===0?'var(--gold)':'var(--ink)'};padding:0.5rem 0.85rem;min-width:90px">
+              <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">${medals[i]||`#${i+1}`}</div>
+              <div style="font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;color:var(--ocean)">${esc(name)}</div>
+              <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:${i===0?'var(--gold)':'var(--ink)'}">${pts} pts</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <table style="border-collapse:collapse;width:100%;min-width:320px">
+            <thead><tr>
+              <th style="text-align:left;${thStyle}">Week</th>
+              <th style="text-align:left;${thStyle}">Winner</th>
+              ${allPredictors.map(n=>`<th style="${thStyle}">${esc(n)}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${weekRows}
+              <tr>
+                <td colspan="2" style="padding:0.4rem 0.6rem;font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:700;border-top:2px solid var(--ink)">Total</td>
+                ${totalCells}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
   }
 
   function renderPrevResultsBanner() {

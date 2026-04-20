@@ -672,12 +672,17 @@ def get_predictions():
                 existing_predictors.add(p['predictor'].lower())
     results = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=*")
     result = results[0] if results else None
-    # On Monday, also return previous week's results so the UI can show last week's winners
+    # Always return the most recently calculated results so the UI can show the results animation
+    # on first visit regardless of what day it is
     prev_results = None
-    if today.weekday() == 0:
-        prev_monday = (monday - timedelta(days=7)).isoformat()
-        prev_data = supabase_request('GET', f"prediction_results?week_start=eq.{prev_monday}&select=*")
-        prev_results = prev_data[0] if prev_data else None
+    prev_monday = (monday - timedelta(days=7)).isoformat()
+    prev_data = supabase_request('GET', f"prediction_results?week_start=eq.{prev_monday}&select=*")
+    prev_results = prev_data[0] if prev_data else None
+    # If nothing found for prev week, try the one before (in case a week was skipped)
+    if not prev_results:
+        older_monday = (monday - timedelta(days=14)).isoformat()
+        older_data = supabase_request('GET', f"prediction_results?week_start=eq.{older_monday}&select=*")
+        prev_results = older_data[0] if older_data else None
     return jsonify({"predictions": predictions, "week_start": week_start, "results": result, "prev_results": prev_results})
 
 @app.route('/api/predictions', methods=['POST'])
@@ -728,6 +733,13 @@ def submit_prediction():
     if result is None:
         return jsonify({"error": "Failed to save"}), 500
     return jsonify({"success": True})
+
+@app.route('/api/predictions/history', methods=['GET'])
+def get_prediction_history():
+    """Returns all historical prediction results for cumulative standings."""
+    results = supabase_request('GET', 'prediction_results?select=*&order=week_start.asc')
+    return jsonify({"history": results or []})
+
 
 @app.route('/api/predictions/calculate', methods=['POST'])
 def calculate_predictions():
