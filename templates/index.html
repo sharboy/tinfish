@@ -2225,8 +2225,11 @@
     const lower = name.toLowerCase();
     const mine = appData.entries.filter(e => e.name.toLowerCase() === lower);
     if (!mine.length) return 0;
-    // entries are ordered timestamp.desc so first is most recent
-    const last = mine[0].date ? mine[0].date.slice(0, 10) : null;
+    // Use max date, not submission order — backdated entries have an old date but recent timestamp
+    const last = mine.reduce((best, e) => {
+      const d = e.date ? e.date.slice(0, 10) : null;
+      return (!best || (d && d > best)) ? d : best;
+    }, null);
     if (!last) return 0;
     const lastMs = new Date(last + 'T00:00:00').getTime();
     const todayMs = new Date(new Date().toLocaleDateString('en-CA') + 'T00:00:00').getTime();
@@ -2597,8 +2600,9 @@
 
     entries.forEach(e => {
       byPerson[e.name] = (byPerson[e.name] || 0) + e.tins;
-      // entries are already sorted timestamp.desc — first occurrence per name is most recent
-      if (!lastEaten[e.name]) lastEaten[e.name] = e.date ? e.date.slice(0, 10) : null;
+      // Track max date per person — backdated entries have an old date but recent timestamp
+      const d = e.date ? e.date.slice(0, 10) : null;
+      if (d && (!lastEaten[e.name] || d > lastEaten[e.name])) lastEaten[e.name] = d;
       if (!allDates[e.name]) allDates[e.name] = new Set();
       if (e.date) allDates[e.name].add(e.date.slice(0, 10));
     });

@@ -627,11 +627,13 @@ def slacker_check():
     from datetime import date as _date, timedelta
     import zoneinfo as _zi
     today = datetime.now(_zi.ZoneInfo('America/New_York')).date()
+    # Use max date per person — backdated entries have an old date but recent timestamp
     last_logged = {}
     for e in entries:
         n = e['name']
-        if n not in last_logged:
-            last_logged[n] = e['date']
+        d = (e.get('date') or '')[:10]
+        if d and (n not in last_logged or d > last_logged[n]):
+            last_logged[n] = d
 
     called_out = []
     for name, last_date in last_logged.items():
