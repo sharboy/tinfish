@@ -3759,7 +3759,14 @@
         <div style="font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.5rem;line-height:1.5">
           Q1: correct winner = 10 pts, runner-up = 5 pts &nbsp;·&nbsp; Q2: 10/6/3 for closest total &nbsp;·&nbsp; Q3: 5/3/1 per person closest guess
         </div>
-      </div>`;
+      </div>
+      ${results.actual_individual ? `<div class="pred-reveal-card">
+        <div class="pred-reveal-header">🥫 Tins eaten last week</div>
+        ${Object.entries(results.actual_individual).sort((a,b)=>b[1]-a[1]).map(([name,n]) =>
+          `<div class="pred-reveal-row"><span class="pred-reveal-name">${esc(name)}</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--ocean);font-weight:700">${n} tin${n!==1?'s':''}</span></div>`
+        ).join('')}
+        <div class="pred-reveal-row" style="background:#fafaf8"><span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Group total</span><span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);font-weight:700">${results.actual_total} tins</span></div>
+      </div>` : ''}`;
   }
 
   function renderPredictionsRevealed(el) {
