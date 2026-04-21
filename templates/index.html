@@ -2638,10 +2638,18 @@
 
     const sorted = Object.entries(byPerson).sort((a,b) => b[1]-a[1]);
 
-    function seedIndex(name, n, arr) {
-      let hash = 0;
-      for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % arr.length;
-      return (hash + n) % arr.length;
+    function makeLineAssigner(arr) {
+      const used = new Set();
+      return (name, n) => {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) % arr.length;
+        let idx = (hash + n) % arr.length;
+        if (used.size < arr.length) {
+          while (used.has(idx)) idx = (idx + 1) % arr.length;
+        }
+        used.add(idx);
+        return idx;
+      };
     }
 
     // Today's big eater callout lines
@@ -2691,6 +2699,11 @@
     const rows = [];
     const MAX_ROWS = 7;
 
+    const pickTodayLine = makeLineAssigner(todayLines);
+    const pickPraiseLine = makeLineAssigner(praiseLines);
+    const pickMissedLine = makeLineAssigner(missedLines);
+    const pickScoldLine = makeLineAssigner(scoldLines);
+
     // === TODAY'S HIGHLIGHT ===
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayByPerson = {};
@@ -2702,7 +2715,7 @@
     const todayBiggest = Object.entries(todayByPerson).sort((a,b) => b[1]-a[1])[0];
     if (todayBiggest && todayBiggest[1] >= 2) {
       const [tName, tTins] = todayBiggest;
-      const tidx = seedIndex(tName, tTins, todayLines);
+      const tidx = pickTodayLine(tName, tTins);
       rows.push({ emoji: '🤯', text: todayLines[tidx](tName, tTins), scold: false, bonus: true });
     }
 
@@ -2710,7 +2723,7 @@
     sorted.slice(0, 2).forEach(([name, tins], i) => {
       if (tins > 0 && rows.length < MAX_ROWS) {
         const streak = getStreak(name);
-        const idx = seedIndex(name, tins, praiseLines);
+        const idx = pickPraiseLine(name, tins);
         rows.push({ emoji: ['🔥','👑','💪','⭐','🏅','🎖️'][idx % 6], text: praiseLines[idx](name, tins, streak), scold: false });
       }
     });
@@ -2728,10 +2741,10 @@
       if (rows.length >= MAX_ROWS) return;
       const missed = daysSince(name);
       if (missed >= 2) {
-        const idx = seedIndex(name, missed, missedLines);
+        const idx = pickMissedLine(name, missed);
         rows.push({ emoji: ['😴','👻','🚨','😤','💀','🫵'][idx % 6], text: missedLines[idx](name, missed), scold: true });
       } else {
-        const idx = seedIndex(name, tins, scoldLines);
+        const idx = pickScoldLine(name, tins);
         rows.push({ emoji: ['😤','👀','🫵','😬','🚨','😒'][idx % 6], text: scoldLines[idx](name, tins), scold: true });
       }
     });
