@@ -677,10 +677,14 @@ def get_predictions():
     # Always return the most recently calculated results so the UI can show the results animation
     # on first visit regardless of what day it is
     prev_results = None
-    prev_monday = (monday - timedelta(days=7)).isoformat()
+    prev_monday_date = monday - timedelta(days=7)
+    prev_monday = prev_monday_date.isoformat()
     prev_data = supabase_request('GET', f"prediction_results?week_start=eq.{prev_monday}&select=*")
     prev_results = prev_data[0] if prev_data else None
-    # If nothing found for prev week, try the one before (in case a week was skipped)
+    # Self-heal: if last week's row is missing, compute it from stored entries+predictions.
+    if not prev_results:
+        prev_results = _score_week(prev_monday_date)
+    # If still nothing (no entries or no predictions for last week), try the week before.
     if not prev_results:
         older_monday = (monday - timedelta(days=14)).isoformat()
         older_data = supabase_request('GET', f"prediction_results?week_start=eq.{older_monday}&select=*")
@@ -763,37 +767,26 @@ def get_prediction_history():
     return jsonify({"history": results or []})
 
 
-@app.route('/api/predictions/calculate', methods=['POST'])
-def calculate_predictions():
-    """Auto-called Sunday midnight to score the week's predictions."""
-    data = request.json or {}
-    if data.get('key') != 'fishtins':
-        return jsonify({"error": "Unauthorized"}), 403
-
-    now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
-    # Score the week that just ended (previous Monday to Sunday)
-    today = now_est.date()
-    monday = today - timedelta(days=today.weekday() + 7)  # previous Monday
+def _score_week(monday):
+    """Compute and persist prediction_results for the week starting on the given Monday.
+    Returns the result row dict, or None if there are no entries or no predictions."""
     week_start = monday.isoformat()
     week_end = (monday + timedelta(days=6)).isoformat()
 
-    # Get all entries for that week
     entries = supabase_request('GET', f"entries?date=gte.{week_start}&date=lte.{week_end}&select=name,tins")
     if not entries:
-        return jsonify({"error": "No entries found"}), 404
+        return None
 
-    # Calculate actual winner and total
     by_person = {}
     for e in entries:
         by_person[e['name']] = by_person.get(e['name'], 0) + e['tins']
     actual_winner = max(by_person, key=by_person.get)
-    actual_total = sum(by_person.values())  # group total for Q2 scoring and storage
+    actual_total = sum(by_person.values())
 
-    # Get predictions for that week, including any stored under historical week_start variants
     predictions = supabase_request('GET', f"predictions?week_start=eq.{week_start}&select=*") or []
     alt_week_starts = [
-        (monday - timedelta(days=7)).isoformat(),  # old Sunday formula (prev Monday)
-        (monday + timedelta(days=1)).isoformat(),   # +1 day offset from some deploys
+        (monday - timedelta(days=1)).isoformat(),
+        (monday + timedelta(days=1)).isoformat(),
     ]
     seen_predictors = {p['predictor'].lower() for p in predictions}
     for alt_start in alt_week_starts:
@@ -803,9 +796,8 @@ def calculate_predictions():
                 predictions.append(p)
                 seen_predictors.add(p['predictor'].lower())
     if not predictions:
-        return jsonify({"error": "No predictions found"}), 404
+        return None
 
-    # Score Q1: correct winner = 10pts, runner-up = 5pts
     sorted_by_tins = sorted(by_person.items(), key=lambda x: x[1], reverse=True)
     runner_up = sorted_by_tins[1][0] if len(sorted_by_tins) > 1 else None
     scores = {p['predictor']: 0 for p in predictions}
@@ -815,7 +807,6 @@ def calculate_predictions():
         elif runner_up and p['predicted_winner'] == runner_up:
             scores[p['predictor']] += 5
 
-    # Score Q2: 10/6/3 closest group total
     ranked = sorted(predictions, key=lambda p: abs(p['predicted_total'] - actual_total))
     pts = [10, 6, 3]
     i = 0
@@ -828,12 +819,11 @@ def calculate_predictions():
             scores[ranked[k]['predictor']] = scores.get(ranked[k]['predictor'], 0) + award
         i = j
 
-    # Score Q3: 5/3/1 per person individual predictions
     for person, actual_n in by_person.items():
         guesses = []
         for p in predictions:
             if p['predictor'] == person:
-                continue  # skip predicting yourself
+                continue
             ind = p.get('individual_predictions') or {}
             if person in ind:
                 guesses.append({'name': p['predictor'], 'diff': abs(int(ind[person]) - actual_n)})
@@ -853,19 +843,42 @@ def calculate_predictions():
         "id": uuid.uuid4().hex,
         "week_start": week_start,
         "actual_winner": actual_winner,
-        "actual_total": actual_total,  # group total
+        "actual_total": actual_total,
         "actual_individual": by_person,
         "scores": scores,
     }
 
-    # Upsert result
     existing = supabase_request('GET', f"prediction_results?week_start=eq.{week_start}&select=id")
     if existing:
         supabase_request('PATCH', f"prediction_results?week_start=eq.{week_start}", {"actual_winner": actual_winner, "actual_total": actual_total, "actual_individual": by_person, "scores": scores})
     else:
         supabase_request('POST', 'prediction_results', result_row)
 
-    return jsonify({"success": True, "week_start": week_start, "actual_winner": actual_winner, "actual_total": actual_total, "scores": scores})
+    return result_row
+
+
+@app.route('/api/predictions/calculate', methods=['POST'])
+def calculate_predictions():
+    data = request.json or {}
+    if data.get('key') != 'fishtins':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    now_est = datetime.now(zoneinfo.ZoneInfo('America/New_York'))
+    today = now_est.date()
+    # Score the most recently completed week (the Monday before this Monday)
+    this_monday = today - timedelta(days=today.weekday())
+    monday = this_monday - timedelta(days=7)
+    week_start = monday.isoformat()
+    week_end = (monday + timedelta(days=6)).isoformat()
+
+    result_row = _score_week(monday)
+    if result_row is None:
+        entries = supabase_request('GET', f"entries?date=gte.{week_start}&date=lte.{week_end}&select=name,tins")
+        if not entries:
+            return jsonify({"error": "No entries found"}), 404
+        return jsonify({"error": "No predictions found"}), 404
+
+    return jsonify({"success": True, "week_start": week_start, "actual_winner": result_row["actual_winner"], "actual_total": result_row["actual_total"], "scores": result_row["scores"]})
 
 
 if __name__ == '__main__':
